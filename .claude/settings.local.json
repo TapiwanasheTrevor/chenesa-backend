@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/memimal/Downloads/**)",
+      "Bash(composer:*)",
+      "Bash(php artisan make:migration:*)",
+      "Bash(php artisan make:model:*)",
+      "Bash(php artisan filament:install:*)",
+      "Bash(php artisan make:filament-user:*)",
+      "Bash(php artisan make:filament-resource:*)",
+      "Bash(php artisan make:controller:*)",
+      "Bash(php artisan make:seeder:*)",
+      "Bash(php artisan:*)",
+      "Bash(psql:*)",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -c \"CREATE DATABASE chenesa;\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"TRUNCATE TABLE sessions;\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"SELECT email, first_name, last_name, role FROM users WHERE email = ''admin@chenesa.io'';\")",
+      "Bash(npm run build:*)",
+      "Bash(curl:*)",
+      "Bash(npm run dev:*)",
+      "Bash(pkill:*)",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"UPDATE users SET password = ''$2y$12$LQv3c1ydiCZ/Gzv6/GVWPeMU.wKrOa9xJrEqp6JNI7q3NQZzP3/Tm'' WHERE email = ''admin@chenesa.io'';\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"UPDATE users SET password = ''$2y$12$lqVUJCKAbIhUN8t675ItlecoENq.53QSzELCI8Em3rpcJeG0bPZUm'' WHERE email = ''admin@chenesa.io'';\")",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"\\d tanks\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"SELECT COUNT(*) FROM sensor_readings;\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"\\d organizations\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"\\d sensors\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"\\d water_orders\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"TRUNCATE TABLE sensor_readings, alerts, water_orders, tanks, sensors, users, organizations CASCADE;\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"\\d alerts\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"SELECT COUNT(*) as tanks FROM tanks; SELECT COUNT(*) as readings FROM sensor_readings; SELECT COUNT(*) as orders FROM water_orders; SELECT COUNT(*) as alerts FROM alerts;\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"UPDATE users SET password = ''$2y$12$lqVUJCKAbIhUN8t675ItlecoENq.53QSzELCI8Em3rpcJeG0bPZUm'' WHERE email = ''demo@chenesa.io'';\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"UPDATE users SET password = ''$2y$12$C2dij396bte6BXtmI8eEUOlTpJjd64hdLFWbfgp602kFTXLWqBFY.'' WHERE email = ''demo@chenesa.io'';\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

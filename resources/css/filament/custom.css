@@ -1,0 +1,19 @@
+/* Custom styles for Filament dashboard widgets */
+
+/* Alert Distribution and Tank Status Distribution full height */
+.fi-wi-chart[data-widget="AlertsTimelineChart"] .fi-wi-chart-content,
+.fi-wi-chart[data-widget="TankStatusDistribution"] .fi-wi-chart-content {
+    height: 400px !important;
+    min-height: 400px !important;
+}
+
+.fi-wi-chart[data-widget="AlertsTimelineChart"] .fi-wi-chart-content > div,
+.fi-wi-chart[data-widget="TankStatusDistribution"] .fi-wi-chart-content > div {
+    height: 100% !important;
+}
+
+.fi-wi-chart[data-widget="AlertsTimelineChart"] canvas,
+.fi-wi-chart[data-widget="TankStatusDistribution"] canvas {
+    height: 100% !important;
+    max-height: 380px !important;
+}
