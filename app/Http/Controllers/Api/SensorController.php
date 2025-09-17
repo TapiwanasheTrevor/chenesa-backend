@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Sensor;
 use App\Models\SensorReading;
 use App\Models\Tank;
+use App\Services\FirebaseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -280,6 +281,9 @@ class SensorController extends Controller
 
         $sensorReading->save();
 
+        // Sync with Firebase Realtime Database
+        $this->syncWithFirebase($sensorReading);
+
         Log::info('Sensor reading stored', [
             'sensor_reading_id' => $sensorReading->id,
             'sensor_id' => $sensor->id,
@@ -287,6 +291,69 @@ class SensorController extends Controller
             'level' => $sensorReading->level,
             'distance' => $sensorReading->distance,
         ]);
+    }
+
+    /**
+     * Sync sensor reading with Firebase Realtime Database
+     */
+    private function syncWithFirebase(SensorReading $sensorReading)
+    {
+        try {
+            $firebaseService = app(FirebaseService::class);
+
+            if (!$firebaseService->isConfigured()) {
+                Log::debug('Firebase not configured, skipping realtime sync');
+                return;
+            }
+
+            if (!$sensorReading->tank_id) {
+                Log::debug('No tank associated with sensor reading, skipping Firebase sync');
+                return;
+            }
+
+            // Get tank with organization for complete data
+            $tank = Tank::with('organization', 'sensor')->find($sensorReading->tank_id);
+
+            if (!$tank) {
+                Log::warning('Tank not found for sensor reading', ['tank_id' => $sensorReading->tank_id]);
+                return;
+            }
+
+            // Prepare tank data for Firebase
+            $tankData = [
+                'id' => $tank->id,
+                'name' => $tank->name,
+                'location' => $tank->location,
+                'capacity_liters' => $tank->capacity_liters,
+                'organization_id' => $tank->organization_id,
+                'organization_name' => $tank->organization->name ?? null,
+                'latest_reading' => [
+                    'id' => $sensorReading->id,
+                    'level' => $sensorReading->level,
+                    'distance' => $sensorReading->distance,
+                    'temperature' => $sensorReading->temperature,
+                    'battery_level' => $sensorReading->battery_level,
+                    'timestamp' => $sensorReading->created_at->toISOString(),
+                ],
+                'sensor' => [
+                    'id' => $tank->sensor->id ?? null,
+                    'device_id' => $tank->sensor->device_id ?? null,
+                    'status' => $tank->sensor->status ?? null,
+                ],
+                'last_updated' => now()->toISOString()
+            ];
+
+            // Update Firebase
+            $firebaseService->updateTankData($tank->id, $tankData);
+
+            Log::debug('Firebase sync completed for tank', ['tank_id' => $tank->id]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to sync with Firebase: ' . $e->getMessage(), [
+                'sensor_reading_id' => $sensorReading->id,
+                'tank_id' => $sensorReading->tank_id
+            ]);
+        }
     }
 
     /**

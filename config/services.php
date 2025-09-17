@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'firebase' => [
+        'database_url' => env('FIREBASE_DATABASE_URL'),
+        'project_id' => env('FIREBASE_PROJECT_ID'),
+    ],
+
 ];
