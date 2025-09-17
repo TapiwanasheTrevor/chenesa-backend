@@ -56,14 +56,42 @@ class TankController extends Controller
                 $latestReading = $tank->latestReading;
 
                 return [
+                    // Core Tank Properties
                     'id' => $tank->id,
+                    'organization_id' => $tank->organization_id,
+                    'sensor_id' => $tank->sensor_id,
                     'name' => $tank->name ?? '',
                     'location' => $tank->location ?? '',
+                    'latitude' => $tank->latitude,
+                    'longitude' => $tank->longitude,
+
+                    // Physical Properties
                     'capacity_liters' => $tank->capacity_liters ?? 0,
+                    'height_mm' => $tank->height_mm ?? 0,
+                    'diameter_mm' => $tank->diameter_mm ?? 0,
+                    'shape' => $tank->shape ?? '',
+                    'material' => $tank->material ?? '',
+
+                    // Configuration
+                    'installation_height_mm' => $tank->installation_height_mm ?? 0,
+                    'low_level_threshold' => $tank->low_level_threshold ?? 20,
+                    'critical_level_threshold' => $tank->critical_level_threshold ?? 10,
+                    'refill_enabled' => $tank->refill_enabled ?? false,
+                    'auto_refill_threshold' => $tank->auto_refill_threshold ?? 30,
+
+                    // Timestamps
+                    'created_at' => $tank->created_at->toISOString(),
+                    'updated_at' => $tank->updated_at->toISOString(),
+                    'last_updated' => $tank->updated_at->toISOString(),
+
+                    // Current Status
                     'current_level' => $latestReading?->water_level_percentage ?? 0,
                     'current_volume' => $latestReading?->volume_liters ?? 0,
+                    'sensor_status' => $tank->sensor?->status ?? 'unknown',
                     'status' => $tank->status ?? 'unknown',
                     'last_reading_at' => $latestReading?->created_at?->toISOString() ?? null,
+
+                    // Sensor Data (for backward compatibility)
                     'sensor' => $tank->sensor ? [
                         'id' => $tank->sensor->id,
                         'device_id' => $tank->sensor->device_id ?? '',
@@ -72,14 +100,6 @@ class TankController extends Controller
                         'signal_strength' => $tank->sensor->signal_strength ?? 0,
                         'last_seen' => $tank->sensor->last_seen?->toISOString() ?? null,
                     ] : null,
-                    'settings' => [
-                        'low_level_threshold' => $tank->low_level_threshold ?? 20,
-                        'critical_level_threshold' => $tank->critical_level_threshold ?? 10,
-                        'refill_enabled' => $tank->refill_enabled ?? false,
-                        'auto_refill_threshold' => $tank->auto_refill_threshold ?? 30,
-                    ],
-                    'created_at' => $tank->created_at->toISOString(),
-                    'updated_at' => $tank->updated_at->toISOString(),
                 ];
             });
 
@@ -157,21 +177,42 @@ class TankController extends Controller
             $latestReading = $tank->latestReading;
 
             return response()->json([
+                // Core Tank Properties
                 'id' => $tank->id,
+                'organization_id' => $tank->organization_id,
+                'sensor_id' => $tank->sensor_id,
                 'name' => $tank->name ?? '',
                 'location' => $tank->location ?? '',
-                'latitude' => $tank->latitude ?? null,
-                'longitude' => $tank->longitude ?? null,
+                'latitude' => $tank->latitude,
+                'longitude' => $tank->longitude,
+
+                // Physical Properties
                 'capacity_liters' => $tank->capacity_liters ?? 0,
                 'height_mm' => $tank->height_mm ?? 0,
                 'diameter_mm' => $tank->diameter_mm ?? 0,
                 'shape' => $tank->shape ?? '',
                 'material' => $tank->material ?? '',
+
+                // Configuration
                 'installation_height_mm' => $tank->installation_height_mm ?? 0,
+                'low_level_threshold' => $tank->low_level_threshold ?? 20,
+                'critical_level_threshold' => $tank->critical_level_threshold ?? 10,
+                'refill_enabled' => $tank->refill_enabled ?? false,
+                'auto_refill_threshold' => $tank->auto_refill_threshold ?? 30,
+
+                // Timestamps
+                'created_at' => $tank->created_at->toISOString(),
+                'updated_at' => $tank->updated_at->toISOString(),
+                'last_updated' => $tank->updated_at->toISOString(),
+
+                // Current Status
                 'current_level' => $latestReading?->water_level_percentage ?? 0,
                 'current_volume' => $latestReading?->volume_liters ?? 0,
+                'sensor_status' => $tank->sensor?->status ?? 'unknown',
                 'status' => $tank->status ?? 'unknown',
                 'last_reading_at' => $latestReading?->created_at?->toISOString() ?? null,
+
+                // Extended sensor data for detailed view
                 'sensor' => $tank->sensor ? [
                     'id' => $tank->sensor->id,
                     'device_id' => $tank->sensor->device_id ?? '',
@@ -185,16 +226,10 @@ class TankController extends Controller
                     'last_seen' => $tank->sensor->last_seen?->toISOString() ?? null,
                     'installation_date' => $tank->sensor->installation_date?->toDateString() ?? null,
                 ] : null,
-                'settings' => [
-                    'low_level_threshold' => $tank->low_level_threshold ?? 20,
-                    'critical_level_threshold' => $tank->critical_level_threshold ?? 10,
-                    'refill_enabled' => $tank->refill_enabled ?? false,
-                    'auto_refill_threshold' => $tank->auto_refill_threshold ?? 30,
-                ],
+
+                // Additional data for detailed view
                 'recent_readings' => $recentReadings,
                 'statistics' => $stats,
-                'created_at' => $tank->created_at->toISOString(),
-                'updated_at' => $tank->updated_at->toISOString(),
             ], 200);
 
         } catch (\Exception $e) {

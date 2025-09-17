@@ -92,12 +92,14 @@ class Tank extends Model
     public function getStatusAttribute(): string
     {
         $currentLevel = $this->getCurrentLevelAttribute();
+        $criticalThreshold = $this->critical_level_threshold ?? 10;
+        $lowThreshold = $this->low_level_threshold ?? 20;
 
-        if ($currentLevel <= $this->critical_level_threshold) {
+        if ($currentLevel <= $criticalThreshold) {
             return 'critical';
         }
 
-        if ($currentLevel <= $this->low_level_threshold) {
+        if ($currentLevel <= $lowThreshold) {
             return 'low';
         }
 
