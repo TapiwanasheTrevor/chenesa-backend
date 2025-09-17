@@ -24,14 +24,27 @@ class FirebaseService
     private function initialize(): void
     {
         try {
-            $serviceAccountPath = storage_path('app/firebase-service-account.json');
+            // Try environment variable first (for production)
+            $serviceAccountJson = env('FIREBASE_SERVICE_ACCOUNT');
 
-            if (!file_exists($serviceAccountPath)) {
-                Log::warning('Firebase service account file not found. Push notifications disabled.');
-                return;
+            if ($serviceAccountJson) {
+                $serviceAccount = json_decode($serviceAccountJson, true);
+                if (!$serviceAccount) {
+                    Log::error('Invalid Firebase service account JSON in environment variable');
+                    return;
+                }
+                $factory = (new Factory)->withServiceAccount($serviceAccount);
+            } else {
+                // Fallback to file (for local development)
+                $serviceAccountPath = storage_path('app/firebase-service-account.json');
+
+                if (!file_exists($serviceAccountPath)) {
+                    Log::warning('Firebase service account not found in environment or file. Push notifications disabled.');
+                    return;
+                }
+
+                $factory = (new Factory)->withServiceAccount($serviceAccountPath);
             }
-
-            $factory = (new Factory)->withServiceAccount($serviceAccountPath);
 
             if (config('services.firebase.database_url')) {
                 $factory = $factory->withDatabaseUri(config('services.firebase.database_url'));
