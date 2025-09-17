@@ -158,7 +158,7 @@ class SubscriptionPlanResource extends Resource
                 Tables\Columns\IconColumn::make('is_featured')
                     ->boolean()
                     ->trueIcon('heroicon-o-star')
-                    ->falseIcon('heroicon-o-outline-star')
+                    ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('warning')
                     ->falseColor('gray'),
 
