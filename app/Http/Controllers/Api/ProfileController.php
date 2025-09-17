@@ -24,29 +24,31 @@ class ProfileController extends Controller
             $user->load('organization');
 
             return response()->json([
-                'id' => $user->id,
-                'organization_id' => $user->organization_id,
-                'email' => $user->email,
-                'first_name' => $user->first_name,
-                'last_name' => $user->last_name,
-                'full_name' => $user->full_name,
-                'phone' => $user->phone,
-                'role' => $user->role,
-                'is_active' => $user->is_active,
-                'last_login' => $user->last_login?->toISOString(),
-                'organization' => [
-                    'id' => $user->organization->id,
-                    'name' => $user->organization->name,
-                    'type' => $user->organization->type,
-                    'address' => $user->organization->address,
-                    'city' => $user->organization->city,
-                    'country' => $user->organization->country,
-                    'contact_email' => $user->organization->contact_email,
-                    'contact_phone' => $user->organization->contact_phone,
-                    'subscription_status' => $user->organization->subscription_status,
-                ],
-                'created_at' => $user->created_at->toISOString(),
-                'updated_at' => $user->updated_at->toISOString(),
+                'data' => [
+                    'id' => $user->id,
+                    'organization_id' => $user->organization_id,
+                    'email' => $user->email,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'full_name' => $user->full_name,
+                    'phone' => $user->phone,
+                    'role' => $user->role,
+                    'is_active' => $user->is_active,
+                    'last_login' => $user->last_login?->toISOString(),
+                    'organization' => [
+                        'id' => $user->organization->id,
+                        'name' => $user->organization->name,
+                        'type' => $user->organization->type,
+                        'address' => $user->organization->address,
+                        'city' => $user->organization->city,
+                        'country' => $user->organization->country,
+                        'contact_email' => $user->organization->contact_email,
+                        'contact_phone' => $user->organization->contact_phone,
+                        'subscription_status' => $user->organization->subscription_status,
+                    ],
+                    'created_at' => $user->created_at->toISOString(),
+                    'updated_at' => $user->updated_at->toISOString(),
+                ]
             ], 200);
 
         } catch (\Exception $e) {
