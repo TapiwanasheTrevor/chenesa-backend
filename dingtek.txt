@@ -1,0 +1,67 @@
+To configure your DF555 Ultrasonic Level Sensor to use your own server, particularly for GPRS&4G versions, you can use specific downlink commands via a serial port connection
+.
+Here are the detailed steps:
+1. Gather Required Tools
+:
+    ◦ A TTL tool and wires. This is typically a complimentary accessory, so check your package
+.
+    ◦ Serial port software. You can use any serial software you have
+.
+    ◦ Your DF555 device
+.
+2. Connect TTL to the Sensor
+:
+    ◦ Connect the TTL tool to the debug interface of your DF555 device
+.
+    ◦ Crucially, ensure you connect GND_DF555 to GND_TTL
+.
+    ◦ Then, connect the TTL's USB interface to your computer
+.
+3. Configure Serial Port Software
+:
+    ◦ Set the following parameters in your serial port software
+:
+        ▪ COM Num: Check this in your computer's "Device Manager -> Port"
+.
+        ▪ Baudrate: 115200
+.
+        ▪ Parity bit: NONE
+.
+        ▪ Data bit: 8
+.
+        ▪ Stop bit: 1
+.
+    ◦ Important: Do not select the "Receive as hex" option
+.
+4. Reset/Wake the DF555 Device
+:
+    ◦ The sensor cannot receive commands if it's in sleep mode
+.
+    ◦ To ensure it's awake, restart the DF555 device by magnet
+. You can do this by moving a magnet down from the red mark on the device and then removing it
+.
+    ◦ A successful restart is indicated by the red LED on the PCB board lighting up
+, and the device will immediately report one data packet
+.
+5. Send the Server Address Command
+:
+    ◦ Once the serial port software starts outputting device information, you can send commands in ASCII format
+.
+    ◦ To set the Server1 address (IP1 and PORT1), use the downlink command with command code 0x06
+.
+    ◦ The command format is: 8002999906Content81
+.
+    ◦ The Content part of the command should be your server's IP address and port, formatted as IP1;PORT1;
+.
+    ◦ Critical Note: You must include two English semicolons at the end of the IP1;PORT1; content; otherwise, the command will fail
+.
+    ◦ Example: If your server's IP address is 156.23.68.110 and the port is 5000, the command to send in ASCII would be: 8002999906156.23.68.110;5000;81
+.
+6. Verify Configuration:
+    ◦ If the command is configured successfully, you will receive a reply from the sensor
+.
+Additionally, the DF555 sensor's protocol allows for configuration of a "Server mode" to report data to Server1 only, Server2 only, or both Server1 and Server2 simultaneously
+. The protocol also specifies "IP&PORT2" for a second server address
+.
+For integration with LoRaWAN® network servers, Sigfox® backends, or other third-party applications, CNDINGTEK advises contacting their team to discuss feasibility and quotation
+. This suggests that direct integration with these specific types of network servers or general third-party applications might require a different approach or collaboration with CNDINGTEK, distinct from the direct GPRS/4G sensor configuration outlined above. It's also noted that for GPRS/4G/Sigfox versions, integration into the CNDINGTEK IoT Cloud platform is still under development.

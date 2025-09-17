@@ -21,6 +21,7 @@ class TankResource extends Resource
     protected static ?string $navigationLabel = 'Water Tanks';
     protected static ?string $modelLabel = 'Tank';
     protected static ?string $pluralModelLabel = 'Water Tanks';
+    protected static ?string $navigationGroup = 'Device Management';
     protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form

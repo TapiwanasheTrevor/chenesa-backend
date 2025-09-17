@@ -1,0 +1,1473 @@
+# Chenesa Mobile App - Backend API Documentation
+
+## Base Configuration
+- **Base URL**: `https://chenesa-shy-grass-3201.fly.dev/api`
+- **Authentication**: Bearer Token (Laravel Sanctum)
+- **Content-Type**: `application/json`
+- **Response Format**: JSON
+
+---
+
+## 🔐 1. AUTHENTICATION & USER MANAGEMENT
+
+### Models Involved:
+- **User**: `app/Models/User.php`
+- **Organization**: `app/Models/Organization.php`
+
+### Authentication Flow:
+1. **Login** → Get access token + refresh token
+2. **Include token** in Authorization header: `Bearer {token}`
+3. **Refresh token** when access token expires
+4. **Logout** to invalidate tokens
+
+### API Endpoints:
+
+#### POST `/auth/login`
+**Purpose**: Authenticate user and get access tokens
+**Request**:
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+**Response**:
+```json
+{
+  "user": {
+    "id": "uuid",
+    "organization_id": "uuid",
+    "email": "user@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "role": "admin|user|super_admin",
+    "is_active": true
+  },
+  "token": "1|access_token_here",
+  "refresh_token": "2|refresh_token_here"
+}
+```
+
+#### POST `/auth/register`
+**Purpose**: Create new user account
+**Request**:
+```json
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "password_confirmation": "password123",
+  "first_name": "John",
+  "last_name": "Doe",
+  "organization_name": "My Company"
+}
+```
+
+#### POST `/auth/refresh`
+**Purpose**: Get new access token using refresh token
+**Request**:
+```json
+{
+  "refresh_token": "2|refresh_token_here"
+}
+```
+
+#### POST `/auth/logout` (Protected)
+**Purpose**: Invalidate current session tokens
+**Headers**: `Authorization: Bearer {token}`
+
+### User Profile Management:
+
+#### GET `/profile` (Protected)
+**Purpose**: Get current user details
+**Response**:
+```json
+{
+  "data": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "phone": "+1234567890",
+    "role": "admin",
+    "organization": {
+      "id": "uuid",
+      "name": "Company Name",
+      "type": "commercial"
+    }
+  }
+}
+```
+
+#### PATCH `/profile` (Protected)
+**Purpose**: Update user profile
+**Request**:
+```json
+{
+  "first_name": "John",
+  "last_name": "Smith",
+  "phone": "+1234567890"
+}
+```
+
+#### POST `/profile/change-password` (Protected)
+**Purpose**: Change user password
+**Request**:
+```json
+{
+  "current_password": "old_password",
+  "password": "new_password",
+  "password_confirmation": "new_password"
+}
+```
+
+#### POST `/profile/fcm-token` (Protected)
+**Purpose**: Update Firebase Cloud Messaging token for push notifications
+**Request**:
+```json
+{
+  "fcm_token": "firebase_token_here"
+}
+```
+
+---
+
+## 🏢 2. ORGANIZATION & SUBSCRIPTION MANAGEMENT
+
+### Models Involved:
+- **Organization**: `app/Models/Organization.php`
+- **SubscriptionPlan**: `app/Models/SubscriptionPlan.php`
+
+### Business Rules:
+- Each user belongs to one organization
+- Organizations have subscription plans with usage limits
+- Usage tracking: tanks, users, features
+- Upgrade/downgrade plans based on current usage
+
+### API Endpoints:
+
+#### GET `/organization` (Protected)
+**Purpose**: Get organization details with usage statistics
+**Response**:
+```json
+{
+  "data": {
+    "id": "uuid",
+    "name": "Company Name",
+    "type": "commercial|residential|industrial|municipal",
+    "address": "123 Main St",
+    "city": "City Name",
+    "country": "zimbabwe",
+    "contact_email": "contact@company.com",
+    "contact_phone": "+263123456789",
+    "subscription_status": "active|inactive|suspended",
+    "subscription_plan": {
+      "id": "uuid",
+      "name": "Professional Plan",
+      "price": "49.99",
+      "currency": "USD",
+      "billing_cycle": "monthly|annual",
+      "max_tanks": 10,
+      "max_users": 5,
+      "features": ["analytics", "alerts", "api_access"]
+    },
+    "usage": {
+      "tanks_count": 3,
+      "users_count": 2,
+      "orders_count": 15
+    }
+  }
+}
+```
+
+#### PATCH `/organization` (Protected)
+**Purpose**: Update organization details
+**Request**:
+```json
+{
+  "name": "Updated Company Name",
+  "address": "456 New St",
+  "city": "New City",
+  "contact_email": "new@company.com",
+  "contact_phone": "+263987654321"
+}
+```
+
+#### GET `/organization/subscription` (Protected)
+**Purpose**: Get detailed subscription info with usage analytics
+**Response**:
+```json
+{
+  "data": {
+    "status": "active",
+    "plan": {
+      "id": "uuid",
+      "name": "Professional Plan",
+      "max_tanks": 10,
+      "max_users": 5,
+      "features": ["analytics", "alerts"]
+    },
+    "usage": {
+      "tanks": {
+        "used": 3,
+        "limit": 10,
+        "percentage": 30.0
+      },
+      "users": {
+        "used": 2,
+        "limit": 5,
+        "percentage": 40.0
+      }
+    },
+    "next_billing_date": null,
+    "subscription_started": "2025-01-01T00:00:00Z"
+  }
+}
+```
+
+#### GET `/subscription-plans` (Public)
+**Purpose**: Get all available subscription plans
+**Response**:
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "name": "Basic Plan",
+      "description": "Perfect for small homes",
+      "price": "9.99",
+      "currency": "USD",
+      "billing_cycle": "monthly",
+      "max_tanks": 2,
+      "max_users": 1,
+      "features": ["basic_monitoring"],
+      "is_current": false,
+      "is_popular": false
+    },
+    {
+      "id": "uuid",
+      "name": "Professional Plan",
+      "description": "Great for businesses",
+      "price": "49.99",
+      "currency": "USD",
+      "billing_cycle": "monthly",
+      "max_tanks": 10,
+      "max_users": 5,
+      "features": ["analytics", "alerts", "api_access"],
+      "is_current": true,
+      "is_popular": true
+    }
+  ]
+}
+```
+
+#### POST `/organization/subscription/upgrade` (Protected)
+**Purpose**: Upgrade to a higher tier subscription plan
+**Request**:
+```json
+{
+  "plan_id": "uuid"
+}
+```
+
+#### GET `/organization/billing-history` (Protected)
+**Purpose**: Get billing history and payment records
+**Response**:
+```json
+{
+  "data": {
+    "current_period": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2025-01-31T23:59:59Z",
+      "amount": "49.99",
+      "currency": "USD",
+      "status": "paid"
+    },
+    "billing_history": [],
+    "next_billing": {
+      "date": "2025-02-01T00:00:00Z",
+      "amount": "49.99",
+      "currency": "USD"
+    }
+  }
+}
+```
+
+---
+
+## 🚰 3. TANK MANAGEMENT
+
+### Models Involved:
+- **Tank**: `app/Models/Tank.php`
+- **Sensor**: `app/Models/Sensor.php`
+- **SensorReading**: `app/Models/SensorReading.php`
+- **Alert**: `app/Models/Alert.php`
+
+### Business Rules:
+- Tanks belong to organizations
+- Each tank can have one sensor
+- Sensor readings track water levels, temperature, battery
+- Automatic alerts based on thresholds
+- Tank capacity calculations based on dimensions
+
+### Tank CRUD Operations:
+
+#### GET `/tanks` (Protected)
+**Purpose**: Get all tanks for the organization with current status
+**Query Parameters**:
+- `status`: filter by status (active, inactive, maintenance)
+- `search`: search by name or location
+**Response**:
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "name": "Main Water Tank",
+      "location": "Rooftop - Building A",
+      "capacity_liters": 5000,
+      "current_status": {
+        "water_level_percentage": 75.5,
+        "volume_liters": 3775,
+        "last_updated": "2025-01-15T10:30:00Z",
+        "sensor_online": true,
+        "alert_status": "normal|low|critical"
+      },
+      "sensor": {
+        "id": "uuid",
+        "name": "Ultrasonic Sensor #1",
+        "battery_level": 85
+      }
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "total": 3,
+    "per_page": 10
+  }
+}
+```
+
+#### POST `/tanks` (Protected)
+**Purpose**: Create a new tank
+**Request**:
+```json
+{
+  "name": "New Water Tank",
+  "location": "Basement - Building B",
+  "latitude": -17.8216,
+  "longitude": 31.0492,
+  "capacity_liters": 10000,
+  "height_mm": 3000,
+  "diameter_mm": 2000,
+  "shape": "cylindrical|rectangular|spherical",
+  "material": "plastic|steel|concrete|fiberglass",
+  "installation_height_mm": 500
+}
+```
+
+#### GET `/tanks/{id}` (Protected)
+**Purpose**: Get detailed tank information with recent readings
+**Response**:
+```json
+{
+  "data": {
+    "id": "uuid",
+    "name": "Main Water Tank",
+    "location": "Rooftop - Building A",
+    "latitude": -17.8216,
+    "longitude": 31.0492,
+    "capacity_liters": 5000,
+    "height_mm": 2500,
+    "diameter_mm": 1800,
+    "shape": "cylindrical",
+    "material": "plastic",
+    "current_reading": {
+      "water_level_percentage": 75.5,
+      "volume_liters": 3775,
+      "temperature": 22.3,
+      "battery_level": 85,
+      "timestamp": "2025-01-15T10:30:00Z"
+    },
+    "recent_readings": [
+      {
+        "timestamp": "2025-01-15T10:30:00Z",
+        "water_level_percentage": 75.5,
+        "volume_liters": 3775,
+        "temperature": 22.3
+      }
+    ],
+    "statistics": {
+      "avg_level_24h": 73.2,
+      "avg_level_7d": 71.8,
+      "min_level_24h": 65.0,
+      "max_level_24h": 80.0
+    },
+    "sensor": {
+      "id": "uuid",
+      "name": "Ultrasonic Sensor #1",
+      "type": "ultrasonic",
+      "manufacturer": "Dingtek",
+      "model": "DF555"
+    },
+    "settings": {
+      "low_level_threshold": 20,
+      "critical_level_threshold": 10,
+      "auto_refill_threshold": 30,
+      "refill_enabled": false
+    }
+  }
+}
+```
+
+#### PUT `/tanks/{id}` (Protected)
+**Purpose**: Update tank details
+**Request**:
+```json
+{
+  "name": "Updated Tank Name",
+  "location": "New Location",
+  "capacity_liters": 6000
+}
+```
+
+#### DELETE `/tanks/{id}` (Protected)
+**Purpose**: Delete a tank (with safety checks)
+**Business Rules**:
+- Cannot delete tanks with existing sensor data
+- Must remove sensors first
+
+### Tank Analytics & Monitoring:
+
+#### GET `/tanks/{id}/analytics` (Protected)
+**Purpose**: Get detailed analytics and insights
+**Query Parameters**:
+- `period`: 24h, 7d, 30d (default: 7d)
+**Response**:
+```json
+{
+  "data": {
+    "period": "7d",
+    "data_points": 168,
+    "water_level": {
+      "current": 75.5,
+      "average": 73.2,
+      "minimum": 45.0,
+      "maximum": 95.0
+    },
+    "volume": {
+      "current_liters": 3775,
+      "average_liters": 3660,
+      "minimum_liters": 2250,
+      "maximum_liters": 4750
+    },
+    "consumption": {
+      "total_consumed": 1250.5,
+      "daily_average": 178.6,
+      "trend": "stable|increasing|decreasing"
+    },
+    "temperature": {
+      "current": 22.3,
+      "average": 21.8,
+      "minimum": 18.5,
+      "maximum": 25.2
+    },
+    "trends": {
+      "trend": "decreasing",
+      "change_percentage": -2.3
+    },
+    "alerts_count": 2
+  }
+}
+```
+
+#### GET `/tanks/{id}/live-status` (Protected)
+**Purpose**: Get real-time tank status and recommendations
+**Response**:
+```json
+{
+  "data": {
+    "tank_id": "uuid",
+    "tank_name": "Main Water Tank",
+    "last_updated": "2025-01-15T10:30:00Z",
+    "is_online": true,
+    "water_level": {
+      "percentage": 75.5,
+      "liters": 3775,
+      "status": "normal|low|critical|full"
+    },
+    "temperature": 22.3,
+    "battery_level": 85,
+    "active_alerts": 0,
+    "refill_recommendation": {
+      "recommended": false,
+      "reason": "sufficient_water|low_level|critical_level",
+      "priority": "normal|urgent",
+      "estimated_liters_needed": 0
+    }
+  }
+}
+```
+
+#### GET `/tanks/{id}/history` (Protected)
+**Purpose**: Get historical sensor readings
+**Query Parameters**:
+- `from`: start date (ISO format)
+- `to`: end date (ISO format)
+- `interval`: hour, day, week
+**Response**:
+```json
+{
+  "data": [
+    {
+      "timestamp": "2025-01-15T10:00:00Z",
+      "water_level_percentage": 74.2,
+      "volume_liters": 3710,
+      "temperature": 22.1
+    }
+  ]
+}
+```
+
+#### POST `/tanks/{id}/calibrate` (Protected)
+**Purpose**: Calibrate tank sensor
+**Request**:
+```json
+{
+  "calibration_type": "empty|full|custom",
+  "actual_level_mm": 1500,
+  "actual_level_percentage": 60.0
+}
+```
+
+#### PATCH `/tanks/{id}/settings` (Protected)
+**Purpose**: Update tank alert thresholds and settings
+**Request**:
+```json
+{
+  "low_level_threshold": 25,
+  "critical_level_threshold": 15,
+  "auto_refill_threshold": 35,
+  "refill_enabled": true
+}
+```
+
+---
+
+## 📡 4. SENSOR MANAGEMENT
+
+### Models Involved:
+- **Sensor**: `app/Models/Sensor.php`
+- **SensorReading**: `app/Models/SensorReading.php`
+- **Tank**: `app/Models/Tank.php`
+
+### Business Rules:
+- Each tank can have one sensor
+- Sensors must be registered before use
+- Sensor readings are automatically stored
+- Real-time monitoring and status tracking
+- Battery and connectivity monitoring
+
+### Sensor Types Supported:
+- `ultrasonic`: Distance-based measurement (like Dingtek DF555)
+- `pressure`: Pressure-based level measurement
+- `float`: Float switch sensors
+- `radar`: Radar-based measurement
+
+### API Endpoints:
+
+#### GET `/sensors` (Protected)
+**Purpose**: Get all sensors for the organization
+**Query Parameters**:
+- `status`: active, inactive
+- `type`: ultrasonic, pressure, float, radar
+- `tank_id`: filter by specific tank
+**Response**:
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "name": "Ultrasonic Sensor #1",
+      "device_id": "dingtek_df555_001",
+      "type": "ultrasonic",
+      "manufacturer": "Dingtek",
+      "model": "DF555",
+      "is_active": true,
+      "tank": {
+        "id": "uuid",
+        "name": "Main Water Tank",
+        "location": "Rooftop"
+      },
+      "status": {
+        "status": "online|offline|warning|no_data",
+        "message": "Sensor reporting normally",
+        "last_seen": "2025-01-15T10:30:00Z"
+      },
+      "latest_reading": {
+        "timestamp": "2025-01-15T10:30:00Z",
+        "water_level_percentage": 75.5,
+        "battery_level": 85,
+        "temperature": 22.3
+      },
+      "created_at": "2025-01-10T08:00:00Z"
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "total": 5,
+    "per_page": 10,
+    "last_page": 1
+  }
+}
+```
+
+#### POST `/sensors` (Protected)
+**Purpose**: Register/create a new sensor
+**Request**:
+```json
+{
+  "tank_id": "uuid",
+  "name": "Ultrasonic Sensor #2",
+  "device_id": "dingtek_df555_002",
+  "type": "ultrasonic",
+  "manufacturer": "Dingtek",
+  "model": "DF555",
+  "installation_height_mm": 500,
+  "config": {
+    "reading_interval": 300,
+    "calibration_offset": 0,
+    "temperature_unit": "celsius"
+  }
+}
+```
+
+#### GET `/sensors/{id}` (Protected)
+**Purpose**: Get detailed sensor information with recent readings
+**Response**:
+```json
+{
+  "data": {
+    "id": "uuid",
+    "name": "Ultrasonic Sensor #1",
+    "device_id": "dingtek_df555_001",
+    "type": "ultrasonic",
+    "manufacturer": "Dingtek",
+    "model": "DF555",
+    "installation_height_mm": 500,
+    "is_active": true,
+    "config": {
+      "reading_interval": 300,
+      "calibration_offset": 0,
+      "temperature_unit": "celsius",
+      "alert_enabled": true,
+      "low_battery_threshold": 20
+    },
+    "tank": {
+      "id": "uuid",
+      "name": "Main Water Tank",
+      "location": "Rooftop",
+      "capacity_liters": 5000
+    },
+    "status": {
+      "status": "online",
+      "message": "Sensor reporting normally",
+      "last_seen": "2025-01-15T10:30:00Z"
+    },
+    "latest_reading": {
+      "timestamp": "2025-01-15T10:30:00Z",
+      "water_level_percentage": 75.5,
+      "volume_liters": 3775,
+      "distance": 625,
+      "temperature": 22.3,
+      "battery_level": 85
+    },
+    "recent_readings": [
+      {
+        "timestamp": "2025-01-15T10:30:00Z",
+        "water_level_percentage": 75.5,
+        "volume_liters": 3775,
+        "distance": 625,
+        "temperature": 22.3,
+        "battery_level": 85,
+        "signal_strength": 78
+      }
+    ],
+    "statistics": {
+      "total_readings_7d": 336,
+      "average_battery_level": 82.5,
+      "data_reliability": 98.8,
+      "temperature_range": {
+        "min": 18.5,
+        "max": 25.2,
+        "avg": 21.8
+      }
+    },
+    "created_at": "2025-01-10T08:00:00Z"
+  }
+}
+```
+
+#### PUT `/sensors/{id}` (Protected)
+**Purpose**: Update sensor details
+**Request**:
+```json
+{
+  "name": "Updated Sensor Name",
+  "manufacturer": "Dingtek",
+  "model": "DF555-Pro",
+  "is_active": true
+}
+```
+
+#### DELETE `/sensors/{id}` (Protected)
+**Purpose**: Remove sensor (with safety checks)
+**Query Parameters**:
+- `force`: true/false (force delete with readings)
+**Business Rules**:
+- Default: Cannot delete sensors with historical readings
+- Use `force=true` to delete sensor and all readings
+
+#### GET `/sensors/{id}/readings` (Protected)
+**Purpose**: Get sensor readings with filtering and pagination
+**Query Parameters**:
+- `from`: start date (ISO format)
+- `to`: end date (ISO format)
+- `interval`: minute, hour, day
+- `limit`: max readings (1-1000, default: 100)
+**Response**:
+```json
+{
+  "data": [
+    {
+      "timestamp": "2025-01-15T10:30:00Z",
+      "water_level_percentage": 75.5,
+      "volume_liters": 3775,
+      "distance": 625,
+      "temperature": 22.3,
+      "humidity": null,
+      "battery_level": 85,
+      "signal_strength": 78
+    }
+  ],
+  "metadata": {
+    "sensor_id": "uuid",
+    "sensor_name": "Ultrasonic Sensor #1",
+    "total_readings": 100,
+    "period": {
+      "from": "2025-01-14T00:00:00Z",
+      "to": "2025-01-15T23:59:59Z"
+    }
+  }
+}
+```
+
+#### POST `/sensors/{id}/test` (Protected)
+**Purpose**: Test sensor connectivity and functionality
+**Response**:
+```json
+{
+  "message": "Sensor test completed",
+  "data": {
+    "sensor_id": "uuid",
+    "test_timestamp": "2025-01-15T11:00:00Z",
+    "connectivity": true,
+    "last_reading_age": 15,
+    "battery_status": "good|low|critical|unknown",
+    "signal_quality": "excellent|good|fair|poor|unknown",
+    "overall_status": "online|offline|warning",
+    "recommendations": [
+      "Sensor operating normally"
+    ]
+  }
+}
+```
+
+#### PATCH `/sensors/{id}/settings` (Protected)
+**Purpose**: Update sensor configuration and settings
+**Request**:
+```json
+{
+  "reading_interval": 300,
+  "calibration_offset": 5.0,
+  "temperature_unit": "celsius",
+  "alert_enabled": true,
+  "low_battery_threshold": 25,
+  "config": {
+    "advanced_setting": "value"
+  }
+}
+```
+
+### Sensor Status Definitions:
+- **online**: Receiving readings within expected interval
+- **offline**: No readings for over 1 hour
+- **warning**: Delayed readings (15-60 minutes)
+- **no_data**: Never received any readings
+
+### Battery Status Levels:
+- **good**: 40-100%
+- **low**: 20-39%
+- **critical**: 0-19%
+- **unknown**: No battery data available
+
+---
+
+## 📊 5. DASHBOARD & ANALYTICS
+
+### Models Involved:
+- **SensorReading**: `app/Models/SensorReading.php` (for consumption calculations)
+- **Tank**: `app/Models/Tank.php` (for capacity and levels)
+- **WaterOrder**: `app/Models/WaterOrder.php` (for cost analytics)
+- **Alert**: `app/Models/Alert.php` (for status monitoring)
+
+### Business Rules:
+- **Consumption Tracking**: Calculate consumption based on water level changes over time
+- **Cost Analytics**: Track spending patterns and predict future costs
+- **Efficiency Metrics**: Monitor tank utilization and waste reduction
+- **Predictive Analytics**: Forecast usage patterns based on historical data
+- **Real-time Dashboard**: Provide live overview of all tanks and systems
+
+### API Endpoints:
+
+#### GET `/dashboard/overview`
+**Purpose**: Get comprehensive dashboard overview with key metrics
+**Response**:
+```json
+{
+  "data": {
+    "summary": {
+      "total_tanks": 5,
+      "active_tanks": 4,
+      "total_capacity": 50000,
+      "current_volume": 32500.75,
+      "fill_percentage": 65.0,
+      "active_alerts": 2,
+      "recent_orders": 3
+    },
+    "consumption": {
+      "today": 150.5,
+      "weekly_average": 150.11,
+      "week_total": 1050.75
+    },
+    "tank_levels": {
+      "tank_uuid_1": {
+        "percentage": 85.5,
+        "volume": 8550.0
+      },
+      "tank_uuid_2": {
+        "percentage": 45.2,
+        "volume": 4520.0
+      }
+    },
+    "quick_stats": {
+      "tanks_below_20_percent": 1,
+      "tanks_offline": 1,
+      "pending_orders": 2
+    }
+  }
+}
+```
+
+#### GET `/dashboard/consumption`
+**Purpose**: Get detailed consumption analytics with trends
+**Query Parameters**:
+- `period`: day|week|month|year (default: week)
+- `tank_id`: UUID (optional - specific tank analysis)
+- `start_date`: YYYY-MM-DD (optional)
+- `end_date`: YYYY-MM-DD (optional)
+
+**Response**:
+```json
+{
+  "data": {
+    "period": "week",
+    "consumption_data": [
+      {
+        "date": "2024-01-01",
+        "consumption": 120.5
+      },
+      {
+        "date": "2024-01-02",
+        "consumption": 135.2
+      }
+    ],
+    "trends": {
+      "trend": "increasing",
+      "percentage_change": 5.2,
+      "pattern": "regular"
+    },
+    "statistics": {
+      "total_consumption": 945.75,
+      "average_daily": 135.11,
+      "peak_consumption": 180.25,
+      "efficiency_score": 78.5
+    }
+  }
+}
+```
+
+#### GET `/dashboard/costs`
+**Purpose**: Get cost analytics and spending patterns
+**Query Parameters**:
+- `period`: month|quarter|year (default: month)
+- `year`: integer (default: current year)
+
+**Response**:
+```json
+{
+  "data": {
+    "period": "month",
+    "year": 2024,
+    "cost_breakdown": [
+      {
+        "period": "Jan 2024",
+        "amount": 1250.00
+      },
+      {
+        "period": "Feb 2024",
+        "amount": 1180.50
+      }
+    ],
+    "predictions": [
+      {
+        "period": "Next Month",
+        "predicted_amount": 1300.00
+      }
+    ],
+    "summary": {
+      "total_spent": 14580.50,
+      "average_order_value": 324.90,
+      "total_orders": 45,
+      "cost_per_liter": 0.285
+    }
+  }
+}
+```
+
+#### GET `/dashboard/efficiency`
+**Purpose**: Get efficiency metrics and optimization recommendations
+**Response**:
+```json
+{
+  "data": {
+    "organization_metrics": {
+      "overall_efficiency": 82.7,
+      "best_performing_tank": "Main Storage Tank",
+      "improvement_potential": 12.3,
+      "cost_optimization": 8.5
+    },
+    "tank_metrics": [
+      {
+        "tank_id": "uuid",
+        "tank_name": "Main Storage Tank",
+        "metrics": {
+          "usage_efficiency": 85.2,
+          "refill_frequency": 8.5,
+          "waste_percentage": 3.2,
+          "optimal_level_maintenance": 92.1
+        }
+      }
+    ],
+    "recommendations": [
+      "Optimize refill timing for Tank A to reduce costs",
+      "Consider upgrading sensor calibration for Tank B"
+    ],
+    "benchmarks": {
+      "industry_average_efficiency": 75,
+      "optimal_refill_frequency": "7-10 days",
+      "target_waste_percentage": "< 5%"
+    }
+  }
+}
+```
+
+#### GET `/dashboard/predictions`
+**Purpose**: Get predictive analytics for usage and costs
+**Query Parameters**:
+- `tank_id`: UUID (optional - specific tank predictions)
+- `days_ahead`: integer 1-90 (default: 7)
+
+**Response**:
+```json
+{
+  "data": {
+    "predictions": [
+      {
+        "date": "2024-01-15",
+        "predicted_level": 88.0,
+        "refill_needed": false
+      },
+      {
+        "date": "2024-01-16",
+        "predicted_level": 76.0,
+        "refill_needed": false
+      }
+    ],
+    "confidence_level": 85.5,
+    "assumptions": {
+      "based_on_historical_data": "30 days",
+      "seasonal_adjustments": "included",
+      "external_factors": "weather, holidays"
+    }
+  }
+}
+```
+
+---
+
+## 💧 6. WATER ORDER MANAGEMENT
+
+### Models Involved:
+- **WaterOrder**: `app/Models/WaterOrder.php`
+- **Tank**: `app/Models/Tank.php`
+
+### Business Rules:
+- Orders linked to specific tanks
+- Order status: pending, confirmed, in_transit, delivered, cancelled
+- Automatic order suggestions based on tank levels
+- Order tracking and delivery updates
+
+### API Endpoints:
+
+#### GET `/orders` (Protected)
+**Purpose**: Get order history with filtering
+**Query Parameters**:
+- `status`: filter by order status
+- `from_date`: filter from date
+- `tank_id`: filter by specific tank
+**Response**:
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "tank": {
+        "id": "uuid",
+        "name": "Main Water Tank",
+        "location": "Rooftop"
+      },
+      "volume_liters": 5000,
+      "price": 45.00,
+      "currency": "USD",
+      "status": "pending|confirmed|in_transit|delivered|cancelled",
+      "delivery_date": "2025-01-20T14:00:00Z",
+      "supplier": {
+        "name": "AquaSupply Co",
+        "phone": "+263123456789"
+      },
+      "created_at": "2025-01-15T09:00:00Z"
+    }
+  ]
+}
+```
+
+#### POST `/orders` (Protected)
+**Purpose**: Create a new water order
+**Request**:
+```json
+{
+  "tank_id": "uuid",
+  "volume_liters": 5000,
+  "delivery_date": "2025-01-20T14:00:00Z",
+  "delivery_address": "123 Main St, City",
+  "special_instructions": "Call before delivery"
+}
+```
+
+#### GET `/orders/{id}` (Protected)
+**Purpose**: Get detailed order information
+**Response**:
+```json
+{
+  "data": {
+    "id": "uuid",
+    "tank": {
+      "id": "uuid",
+      "name": "Main Water Tank",
+      "current_level": 25.5
+    },
+    "volume_liters": 5000,
+    "price": 45.00,
+    "currency": "USD",
+    "status": "confirmed",
+    "delivery_date": "2025-01-20T14:00:00Z",
+    "delivery_address": "123 Main St, City",
+    "supplier": {
+      "name": "AquaSupply Co",
+      "phone": "+263123456789",
+      "email": "orders@aquasupply.com"
+    },
+    "tracking": {
+      "current_status": "confirmed",
+      "estimated_arrival": "2025-01-20T14:00:00Z",
+      "driver_contact": "+263987654321"
+    },
+    "special_instructions": "Call before delivery",
+    "created_at": "2025-01-15T09:00:00Z"
+  }
+}
+```
+
+#### POST `/orders/{id}/cancel` (Protected)
+**Purpose**: Cancel an existing order
+**Business Rules**: Can only cancel pending/confirmed orders
+
+---
+
+## 🚨 5. ALERTS & NOTIFICATIONS
+
+### Models Involved:
+- **Alert**: `app/Models/Alert.php`
+- **AlertRule**: `app/Models/AlertRule.php`
+- **Tank**: `app/Models/Tank.php`
+
+### Alert Types:
+- `low_water_level`: Tank below low threshold
+- `critical_water_level`: Tank below critical threshold
+- `sensor_offline`: Sensor not reporting
+- `high_temperature`: Temperature above normal
+- `low_battery`: Sensor battery low
+
+### API Endpoints:
+
+#### GET `/alerts` (Protected)
+**Purpose**: Get alerts with filtering
+**Query Parameters**:
+- `status`: active, resolved, dismissed
+- `type`: low_water_level, critical_water_level, etc.
+- `tank_id`: filter by tank
+**Response**:
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "type": "low_water_level",
+      "severity": "medium|high|critical",
+      "title": "Low Water Level Alert",
+      "message": "Main Water Tank is below 20% capacity",
+      "tank": {
+        "id": "uuid",
+        "name": "Main Water Tank",
+        "location": "Rooftop"
+      },
+      "status": "active|resolved|dismissed",
+      "created_at": "2025-01-15T08:30:00Z",
+      "resolved_at": null
+    }
+  ]
+}
+```
+
+#### PATCH `/alerts/{id}/resolve` (Protected)
+**Purpose**: Mark alert as resolved
+**Request**:
+```json
+{
+  "resolution_note": "Issue fixed by manual refill"
+}
+```
+
+---
+
+## Implementation Guidelines:
+
+### Error Handling:
+All endpoints return consistent error format:
+```json
+{
+  "message": "Error description",
+  "errors": {
+    "field_name": ["Validation error message"]
+  }
+}
+```
+
+### HTTP Status Codes:
+- `200`: Success
+- `201`: Created successfully
+- `400`: Bad request / Business rule violation
+- `401`: Unauthorized / Invalid token
+- `403`: Forbidden / Insufficient permissions
+- `404`: Resource not found
+- `422`: Validation failed
+- `500`: Server error
+
+### Pagination:
+List endpoints include pagination metadata:
+```json
+{
+  "data": [...],
+  "pagination": {
+    "current_page": 1,
+    "total": 25,
+    "per_page": 10,
+    "last_page": 3
+  }
+}
+```
+
+---
+
+## 🔔 7. ENHANCED NOTIFICATIONS
+
+### Models Involved:
+- **Notification**: `app/Models/Notification.php`
+- **User**: `app/Models/User.php` (notification preferences)
+
+### Business Rules:
+- **Multi-channel Support**: Push notifications, email, SMS
+- **Smart Preferences**: Customizable notification types and delivery methods
+- **Priority System**: High/normal/low priority with appropriate handling
+- **Quiet Hours**: Respect user-defined quiet periods
+- **Read Tracking**: Track read/unread status with timestamps
+- **Bulk Operations**: Mark multiple notifications as read efficiently
+
+### API Endpoints:
+
+#### GET `/notifications`
+**Purpose**: Get paginated list of notifications for the authenticated user
+**Query Parameters**:
+- `status`: all|read|unread (default: all)
+- `type`: alert|order|system|maintenance (optional)
+- `limit`: integer 1-100 (default: 20)
+- `page`: integer min:1 (default: 1)
+
+**Response**:
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "type": "alert",
+      "title": "Low Water Level Alert",
+      "message": "Tank A water level is below 20%",
+      "data": {
+        "tank_id": "uuid",
+        "current_level": 18.5,
+        "threshold": 20
+      },
+      "priority": "high",
+      "channel": "push",
+      "is_read": false,
+      "read_at": null,
+      "time_ago": "2 minutes ago",
+      "created_at": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "last_page": 5,
+    "per_page": 20,
+    "total": 95,
+    "has_more": true
+  },
+  "summary": {
+    "total_unread": 12,
+    "total_today": 8
+  }
+}
+```
+
+#### PATCH `/notifications/{id}/read`
+**Purpose**: Mark specific notification as read
+**Response**:
+```json
+{
+  "message": "Notification marked as read",
+  "data": {
+    "id": "uuid",
+    "is_read": true,
+    "read_at": "2024-01-15T10:35:00Z"
+  }
+}
+```
+
+#### PATCH `/notifications/mark-multiple-read`
+**Purpose**: Mark multiple notifications as read
+**Request**:
+```json
+{
+  "notification_ids": ["uuid1", "uuid2", "uuid3"]
+}
+```
+**Response**:
+```json
+{
+  "message": "3 notifications marked as read",
+  "updated_count": 3
+}
+```
+
+#### PATCH `/notifications/mark-all-read`
+**Purpose**: Mark all unread notifications as read
+**Response**:
+```json
+{
+  "message": "All notifications marked as read",
+  "updated_count": 12
+}
+```
+
+#### DELETE `/notifications/{id}`
+**Purpose**: Delete specific notification
+**Response**:
+```json
+{
+  "message": "Notification deleted successfully"
+}
+```
+
+#### GET `/notifications/preferences`
+**Purpose**: Get user's notification preferences
+**Response**:
+```json
+{
+  "data": {
+    "alerts": {
+      "low_water_level": true,
+      "sensor_offline": true,
+      "tank_maintenance": true,
+      "water_delivery": true
+    },
+    "channels": {
+      "push": true,
+      "email": false,
+      "sms": false
+    },
+    "schedule": {
+      "quiet_hours_enabled": false,
+      "quiet_hours_start": "22:00",
+      "quiet_hours_end": "07:00",
+      "weekend_notifications": true
+    },
+    "thresholds": {
+      "low_level_percentage": 20,
+      "critical_level_percentage": 10,
+      "sensor_offline_minutes": 30
+    }
+  }
+}
+```
+
+#### PATCH `/notifications/preferences`
+**Purpose**: Update notification preferences
+**Request**:
+```json
+{
+  "alerts": {
+    "low_water_level": true,
+    "sensor_offline": true,
+    "tank_maintenance": false,
+    "water_delivery": true
+  },
+  "channels": {
+    "push": true,
+    "email": true,
+    "sms": false
+  },
+  "schedule": {
+    "quiet_hours_enabled": true,
+    "quiet_hours_start": "23:00",
+    "quiet_hours_end": "06:00",
+    "weekend_notifications": false
+  },
+  "thresholds": {
+    "low_level_percentage": 15,
+    "critical_level_percentage": 5,
+    "sensor_offline_minutes": 15
+  }
+}
+```
+
+#### POST `/notifications/test`
+**Purpose**: Send test notification for troubleshooting
+**Request**:
+```json
+{
+  "type": "push|email|sms",
+  "message": "Custom test message (optional)"
+}
+```
+**Response**:
+```json
+{
+  "message": "Test push notification sent successfully",
+  "notification_id": "uuid"
+}
+```
+
+#### GET `/notifications/statistics`
+**Purpose**: Get notification analytics and patterns
+**Query Parameters**:
+- `days`: integer 1-90 (default: 30)
+
+**Response**:
+```json
+{
+  "data": {
+    "total_notifications": 145,
+    "by_type": {
+      "alert": 89,
+      "order": 32,
+      "system": 24
+    },
+    "read_percentage": 87.5,
+    "daily_counts": [
+      {
+        "date": "2024-01-15",
+        "count": 12
+      }
+    ],
+    "most_common_alerts": [
+      {
+        "title": "Low Water Level Alert",
+        "count": 25
+      }
+    ]
+  },
+  "period": "30 days"
+}
+```
+
+---
+
+## 📋 IMPLEMENTATION SUMMARY
+
+### All API Endpoints Status:
+✅ **Authentication & User Management** - Complete
+✅ **Organization & Subscription Management** - Complete
+✅ **Enhanced Tank Management** - Complete
+✅ **Sensor Management** - Complete
+✅ **Dashboard & Analytics** - Complete
+✅ **Water Order Management** - Complete
+✅ **Enhanced Notifications** - Complete
+
+### Controllers Implemented:
+- `AuthController.php` - User authentication and registration
+- `OrganizationController.php` - Organization and subscription management
+- `TankController.php` - Tank CRUD, analytics, and live monitoring
+- `SensorManagementController.php` - Sensor lifecycle management
+- `DashboardController.php` - Analytics and predictive insights
+- `WaterOrderController.php` - Order placement and tracking
+- `NotificationController.php` - Multi-channel notification system
+
+### Database Models:
+- User, Organization, SubscriptionPlan
+- Tank, Sensor, SensorReading
+- WaterOrder, Alert, Notification
+
+### Authentication Headers:
+```
+Authorization: Bearer {access_token}
+Content-Type: application/json
+Accept: application/json
+```
+
+### Data Validation Rules:
+- UUIDs for all ID fields
+- Email validation for email fields
+- Phone number format validation
+- Geographic coordinates validation (lat/lng)
+- Positive numbers for measurements
+- Enum validation for status fields

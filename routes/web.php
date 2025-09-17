@@ -5,6 +5,17 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
+
+// Health check endpoint
+Route::get('/health', function () {
+    try {
+        DB::connection()->getPdo();
+        return response()->json(['status' => 'healthy', 'timestamp' => now()]);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'unhealthy', 'error' => 'Database connection failed'], 503);
+    }
+});
 
 // Landing page at root
 Route::get('/', [LandingController::class, 'index'])->name('landing');

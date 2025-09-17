@@ -10,8 +10,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasUuids, HasApiTokens;
@@ -32,6 +34,7 @@ class User extends Authenticatable
         'is_active',
         'fcm_token',
         'last_login',
+        'notification_preferences',
     ];
 
     protected $appends = [
@@ -62,6 +65,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'last_login' => 'datetime',
+            'notification_preferences' => 'array',
         ];
     }
 
@@ -93,5 +97,19 @@ class User extends Authenticatable
     public function getFilamentName(): string
     {
         return $this->getFullNameAttribute() ?: $this->email;
+    }
+
+    /**
+     * Get user's notifications
+     */
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        // Allow access for admin and super_admin roles
+        return in_array($this->role, ['admin', 'super_admin']);
     }
 }

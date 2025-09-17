@@ -1,0 +1,61 @@
+# fly.toml app configuration file generated for chenesa-shy-grass-3201 on 2025-09-16T13:13:51+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'chenesa-shy-grass-3201'
+primary_region = 'iad'
+console_command = '/usr/local/bin/php /var/www/html/artisan tinker'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  APP_DEBUG = 'false'
+  APP_ENV = 'production'
+  BROADCAST_DRIVER = 'log'
+  CACHE_DRIVER = 'database'
+  DB_CONNECTION = 'pgsql'
+  DB_PORT = '5432'
+  FILESYSTEM_DISK = 'local'
+  LOG_CHANNEL = 'stderr'
+  LOG_LEVEL = 'error'
+  QUEUE_CONNECTION = 'database'
+  SESSION_DRIVER = 'cookie'
+  SESSION_SECURE_COOKIE = 'true'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+  [http_service.concurrency]
+    type = 'connections'
+    hard_limit = 25
+    soft_limit = 20
+
+[[services]]
+  protocol = 'tcp'
+  internal_port = 8080
+  processes = ['app']
+
+  [[services.ports]]
+    port = 80
+    handlers = ['http']
+
+  [[services.ports]]
+    port = 443
+    handlers = ['tls', 'http']
+
+  [services.concurrency]
+    type = 'connections'
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1

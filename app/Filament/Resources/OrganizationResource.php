@@ -21,7 +21,8 @@ class OrganizationResource extends Resource
     protected static ?string $navigationLabel = 'Organizations';
     protected static ?string $modelLabel = 'Organization';
     protected static ?string $pluralModelLabel = 'Organizations';
-    protected static ?int $navigationSort = 1;
+    protected static ?string $navigationGroup = 'User Management';
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {

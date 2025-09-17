@@ -21,7 +21,8 @@ class WaterOrderResource extends Resource
     protected static ?string $navigationLabel = 'Water Orders';
     protected static ?string $modelLabel = 'Water Order';
     protected static ?string $pluralModelLabel = 'Water Orders';
-    protected static ?int $navigationSort = 4;
+    protected static ?string $navigationGroup = 'Monitoring';
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {

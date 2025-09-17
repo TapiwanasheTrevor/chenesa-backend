@@ -19,7 +19,8 @@ class AlertResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-bell-alert';
     protected static ?string $navigationLabel = 'Alerts';
-    protected static ?int $navigationSort = 6;
+    protected static ?string $navigationGroup = 'Monitoring';
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
