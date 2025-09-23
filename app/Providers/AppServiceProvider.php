@@ -27,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
             \URL::forceScheme('https');
 
             // Ensure Vite uses production assets
-            Vite::useManifestFilename('manifest.json');
+            Vite::useManifestFilename('.vite/manifest.json');
         }
     }
 }
