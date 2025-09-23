@@ -158,27 +158,54 @@ class SensorController extends Controller
         $sensor = Sensor::where('device_id', $deviceId)->first();
 
         if (!$sensor) {
-            // Create a default tank first if none exists
-            $tank = Tank::first();
-            if (!$tank) {
-                Log::error('No tank available to assign sensor');
-                return null;
-            }
-
+            // Create the sensor first
             $sensor = Sensor::create([
-                'tank_id' => $tank->id,
                 'device_id' => $deviceId,
-                'name' => 'Dingtek DF555 - ' . $deviceId,
-                'type' => 'ultrasonic',
-                'manufacturer' => 'Dingtek',
                 'model' => 'DF555',
-                'is_active' => true,
-                'config' => [
-                    'ip_address' => $ipAddress,
-                    'auto_created' => true,
-                    'created_at' => now()->toISOString()
-                ]
+                'status' => 'active',
+                'last_seen' => now()
             ]);
+
+            // Create or assign a tank to this sensor
+            $tank = Tank::where('sensor_id', null)->first();
+            if (!$tank) {
+                // Get first available organization or create one
+                $organization = \App\Models\Organization::first();
+                if (!$organization) {
+                    // Ensure we have a subscription plan
+                    $subscriptionPlan = \App\Models\SubscriptionPlan::first();
+                    if (!$subscriptionPlan) {
+                        $subscriptionPlan = \App\Models\SubscriptionPlan::create([
+                            'name' => 'Basic Plan',
+                            'description' => 'Auto-created basic plan',
+                            'price' => 0.00,
+                            'features' => json_encode(['basic_monitoring'])
+                        ]);
+                    }
+
+                    $organization = \App\Models\Organization::create([
+                        'name' => 'Default Organization',
+                        'subscription_plan_id' => $subscriptionPlan->id
+                    ]);
+                }
+
+                // Create a default tank if none exists
+                $tank = Tank::create([
+                    'organization_id' => $organization->id,
+                    'sensor_id' => $sensor->id,
+                    'name' => 'Auto-created Tank for ' . $deviceId,
+                    'location' => 'Unknown Location',
+                    'capacity_liters' => 10000,
+                    'height_mm' => 2000,
+                    'diameter_mm' => 1500,
+                    'shape' => 'cylindrical',
+                    'material' => 'plastic'
+                ]);
+            } else {
+                // Assign existing unassigned tank to this sensor
+                $tank->sensor_id = $sensor->id;
+                $tank->save();
+            }
 
             Log::info('Created new sensor for Dingtek device', [
                 'sensor_id' => $sensor->id,
@@ -267,15 +294,36 @@ class SensorController extends Controller
      */
     private function storeSensorReading(Sensor $sensor, array $reading)
     {
+        // Get the tank associated with this sensor
+        $tank = $sensor->tank;
+
+        if (!$tank) {
+            Log::warning('No tank associated with sensor, cannot store reading', [
+                'sensor_id' => $sensor->id
+            ]);
+            return;
+        }
+
+        // Convert distance from meters to millimeters, default if not provided
+        $distanceMm = null;
+        if (isset($reading['distance'])) {
+            $distanceMm = (int) ($reading['distance'] * 1000); // Convert meters to mm
+        } elseif (isset($reading['level'])) {
+            // If level is provided instead of distance, use tank height minus level
+            $distanceMm = $tank->height_mm - (int) ($reading['level'] * 1000);
+        } else {
+            // Default distance if nothing provided
+            $distanceMm = 1000; // 1 meter default
+        }
+
         $sensorReading = new SensorReading([
             'sensor_id' => $sensor->id,
-            'tank_id' => $sensor->tank_id,
-            'level' => $reading['level'] ?? null,
-            'distance' => $reading['distance'] ?? null,
+            'tank_id' => $tank->id,
+            'distance_mm' => $distanceMm,
+            'water_level_mm' => isset($reading['level']) ? (int) ($reading['level'] * 1000) : null,
             'temperature' => $reading['temperature'] ?? null,
-            'humidity' => null, // DF555 doesn't measure humidity
-            'battery_level' => $reading['battery_level'] ?? null,
-            'signal_strength' => null, // Could be added if available
+            'battery_voltage' => isset($reading['battery_level']) ? $reading['battery_level'] / 100 * 3.7 : null, // Convert % to voltage estimate
+            'raw_data' => json_encode($reading),
             'created_at' => isset($reading['timestamp']) ? $reading['timestamp'] : now(),
         ]);
 
@@ -287,9 +335,9 @@ class SensorController extends Controller
         Log::info('Sensor reading stored', [
             'sensor_reading_id' => $sensorReading->id,
             'sensor_id' => $sensor->id,
-            'tank_id' => $sensor->tank_id,
-            'level' => $sensorReading->level,
-            'distance' => $sensorReading->distance,
+            'tank_id' => $tank->id,
+            'distance_mm' => $sensorReading->distance_mm,
+            'water_level_mm' => $sensorReading->water_level_mm,
         ]);
     }
 
@@ -329,10 +377,11 @@ class SensorController extends Controller
                 'organization_name' => $tank->organization->name ?? null,
                 'latest_reading' => [
                     'id' => $sensorReading->id,
-                    'level' => $sensorReading->level,
-                    'distance' => $sensorReading->distance,
+                    'distance_mm' => $sensorReading->distance_mm,
+                    'water_level_mm' => $sensorReading->water_level_mm,
+                    'water_level_percentage' => $sensorReading->water_level_percentage,
                     'temperature' => $sensorReading->temperature,
-                    'battery_level' => $sensorReading->battery_level,
+                    'battery_voltage' => $sensorReading->battery_voltage,
                     'timestamp' => $sensorReading->created_at->toISOString(),
                 ],
                 'sensor' => [

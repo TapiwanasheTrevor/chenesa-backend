@@ -50,7 +50,9 @@
       "Bash(php:*)",
       "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"UPDATE users SET password = ''$2y$12$3UjKKHg2.0/DKu9tMDIceeN26OZYCNW3wAuxqWDX/pRr7ofj4jiQK'' WHERE email = ''demo@chenesa.io'';\")",
       "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"\\d subscription_plans\")",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(fly ssh sftp shell:*)"
     ],
     "deny": [],
     "ask": []

@@ -13,6 +13,8 @@ console_command = '/usr/local/bin/php /var/www/html/artisan tinker'
 [env]
   APP_DEBUG = 'false'
   APP_ENV = 'production'
+  APP_NAME = 'Chenesa'
+  APP_URL = 'https://chenesa-shy-grass-3201.fly.dev'
   BROADCAST_DRIVER = 'log'
   CACHE_DRIVER = 'database'
   DB_CONNECTION = 'pgsql'
@@ -23,6 +25,7 @@ console_command = '/usr/local/bin/php /var/www/html/artisan tinker'
   QUEUE_CONNECTION = 'database'
   SESSION_DRIVER = 'cookie'
   SESSION_SECURE_COOKIE = 'true'
+  VITE_APP_NAME = 'Chenesa'
 
 [http_service]
   internal_port = 8080

@@ -12,10 +12,17 @@ export default defineConfig({
     ],
     server: {
         cors: true,
-        host: '127.0.0.1',
+        host: process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1',
         port: 5173,
         hmr: {
-            host: '127.0.0.1',
+            host: process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1',
+        },
+    },
+    build: {
+        manifest: true,
+        outDir: 'public/build',
+        rollupOptions: {
+            input: ['resources/js/app.jsx', 'resources/js/landing-app.jsx'],
         },
     },
 });
