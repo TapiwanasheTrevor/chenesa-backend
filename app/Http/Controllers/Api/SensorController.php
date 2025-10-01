@@ -112,6 +112,27 @@ class SensorController extends Controller
             return;
         }
 
+        // Update sensor status with latest info from first reading
+        $firstReading = $readings[0];
+        $updateData = [
+            'last_seen' => now(),
+        ];
+
+        // Update battery level if available
+        if (isset($firstReading['battery_level'])) {
+            $updateData['battery_level'] = (int) $firstReading['battery_level'];
+        }
+
+        // Update signal strength (convert RSSI to percentage)
+        if (isset($firstReading['rssi'])) {
+            // Convert RSSI (-120 to -40 dBm) to percentage (0-100%)
+            $rssi = (int) $firstReading['rssi'];
+            $signalPercentage = max(0, min(100, 2 * ($rssi + 100)));
+            $updateData['signal_strength'] = $signalPercentage;
+        }
+
+        $sensor->update($updateData);
+
         // Store readings
         foreach ($readings as $reading) {
             $this->storeSensorReading($sensor, $reading);
@@ -120,7 +141,9 @@ class SensorController extends Controller
         Log::info('Sensor data processed successfully', [
             'sensor_id' => $sensor->id,
             'device_id' => $deviceId,
-            'readings_count' => count($readings)
+            'readings_count' => count($readings),
+            'battery_level' => $updateData['battery_level'] ?? null,
+            'signal_strength' => $updateData['signal_strength'] ?? null,
         ]);
     }
 
@@ -316,13 +339,27 @@ class SensorController extends Controller
             $distanceMm = 1000; // 1 meter default
         }
 
+        // Calculate water level in mm (height - distance from sensor)
+        $waterLevelMm = max(0, $tank->height_mm - $distanceMm);
+
+        // Calculate water level percentage
+        $waterLevelPercentage = $tank->height_mm > 0
+            ? round(($waterLevelMm / $tank->height_mm) * 100, 2)
+            : 0;
+
+        // Calculate volume based on tank shape
+        $volumeLiters = $this->calculateVolume($tank, $waterLevelMm);
+
         $sensorReading = new SensorReading([
             'sensor_id' => $sensor->id,
             'tank_id' => $tank->id,
             'distance_mm' => $distanceMm,
-            'water_level_mm' => isset($reading['level']) ? (int) ($reading['level'] * 1000) : null,
+            'water_level_mm' => $waterLevelMm,
+            'water_level_percentage' => $waterLevelPercentage,
+            'volume_liters' => $volumeLiters,
             'temperature' => $reading['temperature'] ?? null,
             'battery_voltage' => isset($reading['battery_level']) ? $reading['battery_level'] / 100 * 3.7 : null, // Convert % to voltage estimate
+            'signal_rssi' => $reading['rssi'] ?? null,
             'raw_data' => json_encode($reading),
             'created_at' => isset($reading['timestamp']) ? $reading['timestamp'] : now(),
         ]);
@@ -332,13 +369,55 @@ class SensorController extends Controller
         // Sync with Firebase Realtime Database
         $this->syncWithFirebase($sensorReading);
 
+        // Broadcast real-time event
+        broadcast(new \App\Events\SensorDataReceived($sensor, $sensorReading));
+
         Log::info('Sensor reading stored', [
             'sensor_reading_id' => $sensorReading->id,
             'sensor_id' => $sensor->id,
             'tank_id' => $tank->id,
             'distance_mm' => $sensorReading->distance_mm,
             'water_level_mm' => $sensorReading->water_level_mm,
+            'water_level_percentage' => $sensorReading->water_level_percentage,
+            'volume_liters' => $sensorReading->volume_liters,
         ]);
+    }
+
+    /**
+     * Calculate volume based on tank shape and water level
+     */
+    private function calculateVolume(Tank $tank, int $waterLevelMm): float
+    {
+        // Convert mm to meters for calculations
+        $waterLevelM = $waterLevelMm / 1000;
+        $diameterM = $tank->diameter_mm / 1000;
+        $radiusM = $diameterM / 2;
+
+        switch ($tank->shape) {
+            case 'cylindrical':
+                // Volume = π * r² * h
+                $volumeM3 = pi() * pow($radiusM, 2) * $waterLevelM;
+                break;
+
+            case 'rectangular':
+                // Assume diameter is width, and tank is square for simplicity
+                // Volume = l * w * h
+                $volumeM3 = $diameterM * $diameterM * $waterLevelM;
+                break;
+
+            case 'spherical':
+                // Volume of spherical cap: V = (π * h²/3) * (3r - h)
+                $volumeM3 = (pi() * pow($waterLevelM, 2) / 3) * (3 * $radiusM - $waterLevelM);
+                break;
+
+            default:
+                // Default to cylindrical
+                $volumeM3 = pi() * pow($radiusM, 2) * $waterLevelM;
+                break;
+        }
+
+        // Convert m³ to liters (1 m³ = 1000 liters)
+        return round($volumeM3 * 1000, 2);
     }
 
     /**

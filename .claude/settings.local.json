@@ -52,7 +52,18 @@
       "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"\\d subscription_plans\")",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(fly ssh sftp shell:*)"
+      "Bash(fly ssh sftp shell:*)",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"SELECT s.device_id, s.model, s.status, s.last_seen, COUNT(sr.id) as readings_count, MAX(sr.created_at) as latest_reading FROM sensors s LEFT JOIN sensor_readings sr ON s.id = sr.sensor_id GROUP BY s.id ORDER BY s.created_at DESC LIMIT 10;\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"TRUNCATE TABLE sensor_readings, sensors CASCADE;\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"SELECT COUNT(*) as sensors FROM sensors; SELECT COUNT(*) as readings FROM sensor_readings; SELECT COUNT(*) as tanks FROM tanks;\")",
+      "Bash(python3:*)",
+      "Bash(kill:*)",
+      "Bash(timeout:*)",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"SELECT COUNT(*) as total_readings, MAX(created_at) as latest_reading FROM sensor_readings;\")",
+      "Bash(nc chenesa-shy-grass-3201.fly.dev 8888)",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"\\d sim_cards\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"\\d data_plans\")",
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"\\d recharge_history\")"
     ],
     "deny": [],
     "ask": []

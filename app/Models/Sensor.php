@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -15,6 +16,7 @@ class Sensor extends Model
         'device_id',
         'imei',
         'sim_number',
+        'sim_card_id',
         'model',
         'firmware_version',
         'status',
@@ -44,6 +46,11 @@ class Sensor extends Model
     public function latestReading(): HasOne
     {
         return $this->hasOne(SensorReading::class)->latestOfMany();
+    }
+
+    public function simCard(): BelongsTo
+    {
+        return $this->belongsTo(SimCard::class);
     }
 
     public function scopeActive($query)

@@ -86,6 +86,13 @@ class SensorResource extends Resource
                             ])
                             ->helperText('Assign this sensor to a specific tank'),
 
+                        Forms\Components\Select::make('sim_card_id')
+                            ->label('Assigned SIM Card')
+                            ->relationship('simCard', 'iccid')
+                            ->searchable()
+                            ->preload()
+                            ->helperText('Assign a SIM card to this sensor for connectivity'),
+
                         Forms\Components\Select::make('status')
                             ->options([
                                 'active' => 'Active',
@@ -104,24 +111,134 @@ class SensorResource extends Resource
                     ->schema([
                         Forms\Components\Grid::make(3)
                             ->schema([
-                                Forms\Components\TextInput::make('battery_level')
-                                    ->numeric()
-                                    ->suffix('%')
-                                    ->disabled()
-                                    ->helperText('Last reported battery level'),
+                                Forms\Components\Placeholder::make('battery_status')
+                                    ->label('Battery Level')
+                                    ->content(function ($record) {
+                                        if (!$record || !$record->exists || !$record->battery_level) {
+                                            return 'No data';
+                                        }
+                                        $level = $record->battery_level;
+                                        $color = $level < 20 ? 'danger' : ($level < 50 ? 'warning' : 'success');
+                                        return new \Illuminate\Support\HtmlString(
+                                            '<div class="flex items-center gap-2">
+                                                <span class="text-lg font-bold text-' . $color . '-600">' . $level . '%</span>
+                                            </div>'
+                                        );
+                                    }),
 
-                                Forms\Components\TextInput::make('signal_strength')
-                                    ->numeric()
-                                    ->suffix('%')
-                                    ->disabled()
-                                    ->helperText('Last reported signal strength'),
+                                Forms\Components\Placeholder::make('signal_status')
+                                    ->label('Signal Strength')
+                                    ->content(function ($record) {
+                                        if (!$record || !$record->exists || !$record->signal_strength) {
+                                            return 'No data';
+                                        }
+                                        $strength = $record->signal_strength;
+                                        $color = $strength < 30 ? 'danger' : ($strength < 60 ? 'warning' : 'success');
+                                        return new \Illuminate\Support\HtmlString(
+                                            '<div class="flex items-center gap-2">
+                                                <span class="text-lg font-bold text-' . $color . '-600">' . $strength . '%</span>
+                                            </div>'
+                                        );
+                                    }),
 
-                                Forms\Components\DateTimePicker::make('last_seen')
-                                    ->disabled()
-                                    ->helperText('Last communication time'),
+                                Forms\Components\Placeholder::make('last_seen_status')
+                                    ->label('Last Seen')
+                                    ->content(function ($record) {
+                                        if (!$record || !$record->exists || !$record->last_seen) {
+                                            return 'Never';
+                                        }
+                                        $diffMinutes = $record->last_seen->diffInMinutes(now());
+                                        $color = $diffMinutes > 30 ? 'danger' : 'success';
+                                        return new \Illuminate\Support\HtmlString(
+                                            '<div class="flex flex-col gap-1">
+                                                <span class="text-sm font-medium text-' . $color . '-600">' .
+                                                    $record->last_seen->diffForHumans() .
+                                                '</span>
+                                                <span class="text-xs text-gray-500">' .
+                                                    $record->last_seen->format('M j, Y H:i:s') .
+                                                '</span>
+                                            </div>'
+                                        );
+                                    }),
+                            ]),
+
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\Placeholder::make('latest_reading_info')
+                                    ->label('Latest Reading')
+                                    ->content(function ($record) {
+                                        if (!$record || !$record->exists) {
+                                            return 'No readings yet';
+                                        }
+                                        try {
+                                            $latest = $record->latestReading;
+                                            if (!$latest) {
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<span class="text-sm text-gray-500">No readings yet</span>'
+                                                );
+                                            }
+                                            return new \Illuminate\Support\HtmlString(
+                                                '<div class="flex flex-col gap-1">
+                                                    <span class="text-sm font-medium">Distance: ' . $latest->distance_mm . ' mm</span>
+                                                    <span class="text-sm">Level: ' . ($latest->water_level_percentage ?? 0) . '%</span>
+                                                    <span class="text-xs text-gray-500">' .
+                                                        $latest->created_at->diffForHumans() .
+                                                    '</span>
+                                                </div>'
+                                            );
+                                        } catch (\Exception $e) {
+                                            return 'Error loading readings';
+                                        }
+                                    }),
+
+                                Forms\Components\Placeholder::make('total_readings')
+                                    ->label('Total Readings')
+                                    ->content(function ($record) {
+                                        if (!$record || !$record->exists) {
+                                            return '0';
+                                        }
+                                        try {
+                                            $count = $record->readings()->count();
+                                            return new \Illuminate\Support\HtmlString(
+                                                '<div class="flex flex-col gap-1">
+                                                    <span class="text-2xl font-bold text-primary-600">' .
+                                                        number_format($count) .
+                                                    '</span>
+                                                    <span class="text-xs text-gray-500">readings stored</span>
+                                                </div>'
+                                            );
+                                        } catch (\Exception $e) {
+                                            return '0';
+                                        }
+                                    }),
+
+                                Forms\Components\Placeholder::make('reading_rate')
+                                    ->label('Expected Next Reading')
+                                    ->content(function ($record) {
+                                        if (!$record || !$record->exists || !$record->last_seen) {
+                                            return 'Unknown';
+                                        }
+                                        try {
+                                            $nextReading = $record->last_seen->copy()->addMinutes(10);
+                                            $isOverdue = $nextReading->isPast();
+                                            $color = $isOverdue ? 'danger' : 'success';
+                                            return new \Illuminate\Support\HtmlString(
+                                                '<div class="flex flex-col gap-1">
+                                                    <span class="text-sm font-medium text-' . $color . '-600">' .
+                                                        ($isOverdue ? 'Overdue' : $nextReading->diffForHumans()) .
+                                                    '</span>
+                                                    <span class="text-xs text-gray-500">10-minute interval</span>
+                                                </div>'
+                                            );
+                                        } catch (\Exception $e) {
+                                            return 'Unknown';
+                                        }
+                                    }),
                             ]),
                     ])
-                    ->collapsible(),
+                    ->collapsible()
+                    ->collapsed(false)
+                    ->hidden(fn ($record) => !$record || !$record->exists),
             ]);
     }
 
@@ -129,6 +246,10 @@ class SensorResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ViewColumn::make('pulse')
+                    ->label('')
+                    ->view('filament.tables.columns.sensor-pulse')
+                    ->alignCenter(),
                 Tables\Columns\TextColumn::make('device_id')
                     ->searchable()
                     ->sortable(),
@@ -158,6 +279,7 @@ class SensorResource extends Resource
                     ),
                 Tables\Columns\TextColumn::make('model'),
             ])
+            ->poll('5s')
             ->filters([
                 Tables\Filters\SelectFilter::make('status'),
                 Tables\Filters\Filter::make('offline')

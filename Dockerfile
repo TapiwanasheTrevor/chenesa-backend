@@ -16,12 +16,13 @@ RUN apk add --no-cache \
     nodejs \
     npm \
     icu-dev \
-    icu-data-full
+    icu-data-full \
+    linux-headers
 
-# Install PHP extensions including intl
+# Install PHP extensions including intl and sockets
 RUN docker-php-ext-configure gd --with-jpeg --with-webp \
     && docker-php-ext-configure intl \
-    && docker-php-ext-install pdo pdo_pgsql gd zip opcache pcntl intl
+    && docker-php-ext-install pdo pdo_pgsql gd zip opcache pcntl intl sockets
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

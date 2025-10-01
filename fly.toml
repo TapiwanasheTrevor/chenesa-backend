@@ -21,7 +21,7 @@ console_command = '/usr/local/bin/php /var/www/html/artisan tinker'
   DB_PORT = '5432'
   FILESYSTEM_DISK = 'local'
   LOG_CHANNEL = 'stderr'
-  LOG_LEVEL = 'error'
+  LOG_LEVEL = 'info'
   QUEUE_CONNECTION = 'database'
   SESSION_DRIVER = 'cookie'
   SESSION_SECURE_COOKIE = 'true'
@@ -57,6 +57,20 @@ console_command = '/usr/local/bin/php /var/www/html/artisan tinker'
     type = 'connections'
     hard_limit = 25
     soft_limit = 20
+
+# Raw TCP service for DF555 sensor
+[[services]]
+  protocol = 'tcp'
+  internal_port = 8888
+  processes = ['app']
+
+  [[services.ports]]
+    port = 8888
+
+  [services.concurrency]
+    type = 'connections'
+    hard_limit = 10
+    soft_limit = 5
 
 [[vm]]
   memory = '512mb'
