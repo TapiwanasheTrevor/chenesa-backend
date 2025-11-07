@@ -65,6 +65,7 @@ console_command = '/usr/local/bin/php /var/www/html/artisan tinker'
   processes = ['app']
 
   [[services.ports]]
+    handlers = []
     port = 8888
 
   [services.concurrency]
