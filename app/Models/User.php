@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -105,6 +106,16 @@ class User extends Authenticatable implements FilamentUser
     public function notifications(): HasMany
     {
         return $this->hasMany(Notification::class);
+    }
+
+    /**
+     * Get tanks assigned to this user
+     */
+    public function tanks(): BelongsToMany
+    {
+        return $this->belongsToMany(Tank::class, 'tank_user')
+            ->withPivot(['can_order_water', 'receive_alerts'])
+            ->withTimestamps();
     }
 
     public function canAccessPanel(Panel $panel): bool

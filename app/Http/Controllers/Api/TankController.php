@@ -15,6 +15,7 @@ class TankController extends Controller
 
     /**
      * GET /api/tanks - Return paginated tanks for authenticated user's organization with current sensor data
+     * Only returns tanks assigned to the authenticated user
      */
     public function index(Request $request): JsonResponse
     {
@@ -22,9 +23,19 @@ class TankController extends Controller
             $user = $request->user();
             $organizationId = $user->organization_id;
 
+            // Only show tanks assigned to this user
+            // Admins see all tanks in their organization
             $query = Tank::where('organization_id', $organizationId)
-                ->with(['sensor', 'latestReading'])
-                ->orderBy('name');
+                ->with(['sensor', 'latestReading']);
+
+            // Filter by user assignment unless user is admin
+            if (!in_array($user->role, ['admin', 'super_admin'])) {
+                $query->whereHas('users', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                });
+            }
+
+            $query->orderBy('name');
 
             // Apply filters
             if ($request->has('status')) {
@@ -52,8 +63,11 @@ class TankController extends Controller
             $perPage = min($request->get('per_page', 10), 50);
             $tanks = $query->paginate($perPage);
 
-            $data = $tanks->map(function ($tank) {
+            $data = $tanks->map(function ($tank) use ($user) {
                 $latestReading = $tank->latestReading;
+
+                // Get user permissions for this tank
+                $userPivot = $tank->users()->where('user_id', $user->id)->first()?->pivot;
 
                 return [
                     // Core Tank Properties
@@ -100,6 +114,12 @@ class TankController extends Controller
                         'signal_strength' => $tank->sensor->signal_strength ?? 0,
                         'last_seen' => $tank->sensor->last_seen?->toISOString() ?? null,
                     ] : null,
+
+                    // User Permissions
+                    'permissions' => [
+                        'can_order_water' => $userPivot?->can_order_water ?? in_array($user->role, ['admin', 'super_admin']),
+                        'receive_alerts' => $userPivot?->receive_alerts ?? in_array($user->role, ['admin', 'super_admin']),
+                    ],
                 ];
             });
 
@@ -125,6 +145,7 @@ class TankController extends Controller
 
     /**
      * GET /api/tanks/{id} - Return detailed tank info with recent readings and statistics
+     * User must be assigned to the tank unless they are an admin
      */
     public function show(Request $request, string $id): JsonResponse
     {
@@ -141,6 +162,16 @@ class TankController extends Controller
                 return response()->json([
                     'message' => 'Tank not found'
                 ], 404);
+            }
+
+            // Check if user has access to this tank
+            if (!in_array($user->role, ['admin', 'super_admin'])) {
+                $hasAccess = $tank->users()->where('user_id', $user->id)->exists();
+                if (!$hasAccess) {
+                    return response()->json([
+                        'message' => 'You do not have access to this tank'
+                    ], 403);
+                }
             }
 
             // Get recent readings (last 24 hours)
@@ -175,6 +206,9 @@ class TankController extends Controller
             ];
 
             $latestReading = $tank->latestReading;
+
+            // Get user permissions for this tank
+            $userPivot = $tank->users()->where('user_id', $user->id)->first()?->pivot;
 
             return response()->json([
                 // Core Tank Properties
@@ -226,6 +260,12 @@ class TankController extends Controller
                     'last_seen' => $tank->sensor->last_seen?->toISOString() ?? null,
                     'installation_date' => $tank->sensor->installation_date?->toDateString() ?? null,
                 ] : null,
+
+                // User Permissions
+                'permissions' => [
+                    'can_order_water' => $userPivot?->can_order_water ?? in_array($user->role, ['admin', 'super_admin']),
+                    'receive_alerts' => $userPivot?->receive_alerts ?? in_array($user->role, ['admin', 'super_admin']),
+                ],
 
                 // Additional data for detailed view
                 'recent_readings' => $recentReadings,

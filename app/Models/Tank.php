@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -77,6 +78,13 @@ class Tank extends Model
     public function alertRules(): HasMany
     {
         return $this->hasMany(AlertRule::class);
+    }
+
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'tank_user')
+            ->withPivot(['can_order_water', 'receive_alerts'])
+            ->withTimestamps();
     }
 
     public function getCurrentLevelAttribute(): float
