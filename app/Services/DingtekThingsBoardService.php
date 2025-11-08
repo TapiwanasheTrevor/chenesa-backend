@@ -465,10 +465,24 @@ class DingtekThingsBoardService
             ['device_id' => $deviceId],
             [
                 'model' => $deviceData['type'] ?? 'DF555',
+                'imei' => $deviceName, // Store IMEI from Dingtek
                 'status' => 'active',
                 'last_seen' => now()
             ]
         );
+
+        // Update IMEI if changed
+        if ($sensor->imei !== $deviceName) {
+            $sensor->imei = $deviceName;
+        }
+
+        // Auto-generate friendly name if not set (using IMEI)
+        if (!$sensor->name) {
+            // Use last 6 digits of IMEI for friendly name
+            $model = $deviceData['type'] ?? 'DF555';
+            $sensor->name = $model . '-' . substr($deviceName, -6);
+            $sensor->save();
+        }
 
         // Extract relevant telemetry values
         // Common keys: distance, temperature, battery, level, rssi, etc.

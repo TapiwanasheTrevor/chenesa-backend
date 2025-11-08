@@ -63,7 +63,9 @@
       "Bash(nc chenesa-shy-grass-3201.fly.dev 8888)",
       "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"\\d sim_cards\")",
       "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"\\d data_plans\")",
-      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"\\d recharge_history\")"
+      "Bash(PGPASSWORD=123Bubblegums psql -h 127.0.0.1 -U postgres -d chenesa -c \"\\d recharge_history\")",
+      "Bash(PGPASSWORD=123Bubblegums psql:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
