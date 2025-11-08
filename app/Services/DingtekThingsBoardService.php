@@ -466,8 +466,7 @@ class DingtekThingsBoardService
             [
                 'model' => $deviceData['type'] ?? 'DF555',
                 'imei' => $deviceName, // Store IMEI from Dingtek
-                'status' => 'active',
-                'last_seen' => now()
+                'status' => 'inactive', // Default to inactive, will be updated based on telemetry
             ]
         );
 
@@ -542,8 +541,27 @@ class DingtekThingsBoardService
             return;
         }
 
+        // Determine sensor status based on telemetry timestamp
+        $telemetryTime = isset($reading['timestamp'])
+            ? \Carbon\Carbon::parse($reading['timestamp'])
+            : null;
+
+        // If no telemetry timestamp, sensor cannot be considered active
+        if (!$telemetryTime) {
+            Log::warning('No timestamp in telemetry data', ['device_id' => $deviceId]);
+            $sensor->update(['status' => 'inactive']);
+            return;
+        }
+
+        // Calculate time difference (consider sensor inactive if no data in last 2 hours)
+        $hoursSinceLastReading = $telemetryTime->diffInHours(now());
+        $isOnline = $hoursSinceLastReading < 2;
+
         // Update sensor status
-        $updateData = ['last_seen' => now()];
+        $updateData = [
+            'last_seen' => $telemetryTime, // Use actual telemetry timestamp
+            'status' => $isOnline ? 'active' : 'inactive'
+        ];
 
         if (isset($reading['battery_level'])) {
             $updateData['battery_level'] = (int) $reading['battery_level'];
@@ -556,6 +574,14 @@ class DingtekThingsBoardService
         }
 
         $sensor->update($updateData);
+
+        // Log status for debugging
+        Log::info('Sensor status updated', [
+            'device_id' => $deviceId,
+            'telemetry_time' => $telemetryTime->toDateTimeString(),
+            'hours_since_reading' => $hoursSinceLastReading,
+            'status' => $updateData['status']
+        ]);
 
         // Store the reading
         $this->storeSensorReading($sensor, $reading);
