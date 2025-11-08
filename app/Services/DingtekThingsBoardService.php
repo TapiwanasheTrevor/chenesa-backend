@@ -634,7 +634,16 @@ class DingtekThingsBoardService
                 ]);
             }
 
-            // Create tank for this sensor
+            // Note: Auto-tank creation disabled to give admins full control
+            // Sensors without assigned tanks will simply not have tank data
+            // Admins must manually create tanks and assign sensors through the Filament admin panel
+
+            // Previously auto-created tanks with generic names like "Tank for Sensor {device_id}"
+            // were confusing users in the mobile app. Manual assignment ensures proper naming,
+            // location, and capacity configuration.
+
+            // If you need to re-enable auto-creation for testing, uncomment the code below:
+            /*
             $tank = \App\Models\Tank::create([
                 'organization_id' => $organization->id,
                 'sensor_id' => $sensor->id,
@@ -649,6 +658,7 @@ class DingtekThingsBoardService
 
             // Reload sensor to get the tank relationship
             $sensor->load('tank');
+            */
         }
 
         // Convert to millimeters
