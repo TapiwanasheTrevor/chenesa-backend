@@ -553,9 +553,9 @@ class DingtekThingsBoardService
             return;
         }
 
-        // Calculate time difference (consider sensor inactive if no data in last 2 hours)
+        // Calculate time difference (consider sensor inactive if no data in last 10 hours)
         $hoursSinceLastReading = $telemetryTime->diffInHours(now());
-        $isOnline = $hoursSinceLastReading < 2;
+        $isOnline = $hoursSinceLastReading < 10;
 
         // Update sensor status
         $updateData = [
