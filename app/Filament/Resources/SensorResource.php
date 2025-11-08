@@ -279,17 +279,7 @@ class SensorResource extends Resource
                     }),
                 Tables\Columns\TextColumn::make('last_seen')
                     ->dateTime()
-                    ->color(fn ($record) => {
-                        if (!$record->last_seen) {
-                            return 'danger';
-                        }
-                        $hoursSince = $record->last_seen->diffInHours(now());
-                        return match(true) {
-                            $hoursSince < 10 => 'success',  // Green: Active (< 10 hours)
-                            $hoursSince < 24 => 'warning',  // Orange: Delayed (10-24 hours)
-                            default => 'danger'             // Red: Offline (> 24 hours)
-                        };
-                    }),
+                    ->color(fn ($record) => !$record->last_seen ? 'danger' : ($record->last_seen->diffInHours(now()) < 10 ? 'success' : ($record->last_seen->diffInHours(now()) < 24 ? 'warning' : 'danger'))),
             ])
             ->poll('5s')
             ->filters([
