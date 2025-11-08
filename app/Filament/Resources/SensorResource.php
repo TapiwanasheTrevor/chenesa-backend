@@ -255,8 +255,6 @@ class SensorResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->description(fn ($record) => $record->imei ? "IMEI: {$record->imei}" : null),
-                Tables\Columns\TextColumn::make('tank.name')
-                    ->label('Assigned Tank'),
                 Tables\Columns\BadgeColumn::make('status')
                     ->colors([
                         'success' => 'active',
@@ -264,6 +262,7 @@ class SensorResource extends Resource
                         'danger' => 'inactive',
                     ]),
                 Tables\Columns\TextColumn::make('battery_level')
+                    ->label('Battery')
                     ->suffix('%')
                     ->color(fn ($state) => match(true) {
                         $state < 20 => 'danger',
@@ -271,15 +270,26 @@ class SensorResource extends Resource
                         default => 'success'
                     }),
                 Tables\Columns\TextColumn::make('signal_strength')
-                    ->suffix('%'),
+                    ->label('Signal')
+                    ->suffix('%')
+                    ->color(fn ($state) => match(true) {
+                        $state < 30 => 'danger',
+                        $state < 60 => 'warning',
+                        default => 'success'
+                    }),
                 Tables\Columns\TextColumn::make('last_seen')
                     ->dateTime()
-                    ->color(fn ($record) =>
-                        $record->last_seen && $record->last_seen->diffInMinutes(now()) > 30
-                            ? 'danger'
-                            : 'success'
-                    ),
-                Tables\Columns\TextColumn::make('model'),
+                    ->color(fn ($record) => {
+                        if (!$record->last_seen) {
+                            return 'danger';
+                        }
+                        $hoursSince = $record->last_seen->diffInHours(now());
+                        return match(true) {
+                            $hoursSince < 10 => 'success',  // Green: Active (< 10 hours)
+                            $hoursSince < 24 => 'warning',  // Orange: Delayed (10-24 hours)
+                            default => 'danger'             // Red: Offline (> 24 hours)
+                        };
+                    }),
             ])
             ->poll('5s')
             ->filters([
