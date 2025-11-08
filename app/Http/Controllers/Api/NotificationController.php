@@ -149,13 +149,14 @@ class NotificationController extends Controller
 
     /**
      * Get notification preferences
+     * Supports both nested format (backend) and flat format (mobile app)
      */
     public function getPreferences(Request $request)
     {
         $user = $request->user();
 
-        // Get or create default preferences
-        $preferences = $user->notification_preferences ?? [
+        // Get or create default preferences (nested format)
+        $nestedPreferences = $user->notification_preferences ?? [
             'alerts' => [
                 'low_water_level' => true,
                 'sensor_offline' => true,
@@ -180,16 +181,113 @@ class NotificationController extends Controller
             ]
         ];
 
+        // Check if mobile app format is requested (flat structure)
+        $format = $request->input('format', 'nested');
+
+        if ($format === 'flat') {
+            // Convert to mobile app's expected flat format
+            $flatPreferences = [
+                'push_notifications' => $nestedPreferences['channels']['push'] ?? true,
+                'email_notifications' => $nestedPreferences['channels']['email'] ?? false,
+                'sms_notifications' => $nestedPreferences['channels']['sms'] ?? false,
+                'tank_alerts' => $nestedPreferences['alerts']['low_water_level'] ?? true,
+                'maintenance_reminders' => $nestedPreferences['alerts']['tank_maintenance'] ?? true,
+                'system_updates' => true, // Default value
+                'low_level_alerts' => $nestedPreferences['alerts']['low_water_level'] ?? true,
+                'critical_level_alerts' => true, // Always enabled for safety
+                'sensor_offline_alerts' => $nestedPreferences['alerts']['sensor_offline'] ?? true,
+                'weekly_reports' => false, // Default value
+                'monthly_reports' => false, // Default value
+            ];
+
+            return response()->json([
+                'data' => $flatPreferences
+            ]);
+        }
+
+        // Return nested format for backend/admin
         return response()->json([
-            'data' => $preferences
+            'data' => $nestedPreferences
         ]);
     }
 
     /**
      * Update notification preferences
+     * Supports both nested format (backend) and flat format (mobile app)
      */
     public function updatePreferences(Request $request)
     {
+        $user = $request->user();
+
+        // Detect format based on keys present
+        $isFlatFormat = $request->has('push_notifications') ||
+                       $request->has('email_notifications') ||
+                       $request->has('tank_alerts');
+
+        if ($isFlatFormat) {
+            // Validate flat format (mobile app)
+            $request->validate([
+                'push_notifications' => 'boolean',
+                'email_notifications' => 'boolean',
+                'sms_notifications' => 'boolean',
+                'tank_alerts' => 'boolean',
+                'maintenance_reminders' => 'boolean',
+                'system_updates' => 'boolean',
+                'low_level_alerts' => 'boolean',
+                'critical_level_alerts' => 'boolean',
+                'sensor_offline_alerts' => 'boolean',
+                'weekly_reports' => 'boolean',
+                'monthly_reports' => 'boolean',
+            ]);
+
+            // Convert flat format to nested format for storage
+            $currentPrefs = $user->notification_preferences ?? [];
+
+            $nestedPreferences = [
+                'alerts' => [
+                    'low_water_level' => $request->input('low_level_alerts', $currentPrefs['alerts']['low_water_level'] ?? true),
+                    'sensor_offline' => $request->input('sensor_offline_alerts', $currentPrefs['alerts']['sensor_offline'] ?? true),
+                    'tank_maintenance' => $request->input('maintenance_reminders', $currentPrefs['alerts']['tank_maintenance'] ?? true),
+                    'water_delivery' => $request->input('tank_alerts', $currentPrefs['alerts']['water_delivery'] ?? true),
+                ],
+                'channels' => [
+                    'push' => $request->input('push_notifications', $currentPrefs['channels']['push'] ?? true),
+                    'email' => $request->input('email_notifications', $currentPrefs['channels']['email'] ?? false),
+                    'sms' => $request->input('sms_notifications', $currentPrefs['channels']['sms'] ?? false),
+                ],
+                'schedule' => $currentPrefs['schedule'] ?? [
+                    'quiet_hours_enabled' => false,
+                    'quiet_hours_start' => '22:00',
+                    'quiet_hours_end' => '07:00',
+                    'weekend_notifications' => true,
+                ],
+                'thresholds' => $currentPrefs['thresholds'] ?? [
+                    'low_level_percentage' => 20,
+                    'critical_level_percentage' => 10,
+                    'sensor_offline_minutes' => 30,
+                ],
+                'reports' => [
+                    'weekly' => $request->input('weekly_reports', false),
+                    'monthly' => $request->input('monthly_reports', false),
+                ],
+            ];
+
+            $user->update([
+                'notification_preferences' => $nestedPreferences
+            ]);
+
+            return response()->json([
+                'message' => 'Notification preferences updated successfully',
+                'data' => $request->only([
+                    'push_notifications', 'email_notifications', 'sms_notifications',
+                    'tank_alerts', 'maintenance_reminders', 'system_updates',
+                    'low_level_alerts', 'critical_level_alerts', 'sensor_offline_alerts',
+                    'weekly_reports', 'monthly_reports'
+                ])
+            ]);
+        }
+
+        // Validate nested format (backend/admin)
         $request->validate([
             'alerts.low_water_level' => 'boolean',
             'alerts.sensor_offline' => 'boolean',
@@ -207,7 +305,6 @@ class NotificationController extends Controller
             'thresholds.sensor_offline_minutes' => 'integer|min:5|max:1440',
         ]);
 
-        $user = $request->user();
         $preferences = $request->all();
 
         $user->update([

@@ -222,4 +222,201 @@ class ProfileController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * GET /api/profile/security-settings - Get security settings
+     */
+    public function getSecuritySettings(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            $settings = $user->security_settings ?? [
+                'two_factor_enabled' => false,
+                'session_timeout_enabled' => true,
+                'session_timeout_minutes' => 30,
+                'biometric_enabled' => false,
+            ];
+
+            return response()->json([
+                'data' => $settings
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to fetch security settings',
+                'error' => 'Unable to retrieve security settings'
+            ], 500);
+        }
+    }
+
+    /**
+     * PATCH /api/profile/security-settings - Update security settings
+     */
+    public function updateSecuritySettings(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            $validator = Validator::make($request->all(), [
+                'two_factor_enabled' => 'boolean',
+                'session_timeout_enabled' => 'boolean',
+                'session_timeout_minutes' => 'integer|min:5|max:1440',
+                'biometric_enabled' => 'boolean',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'The given data was invalid',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $currentSettings = $user->security_settings ?? [];
+            $newSettings = array_merge($currentSettings, $request->only([
+                'two_factor_enabled',
+                'session_timeout_enabled',
+                'session_timeout_minutes',
+                'biometric_enabled'
+            ]));
+
+            $user->update([
+                'security_settings' => $newSettings
+            ]);
+
+            return response()->json([
+                'message' => 'Security settings updated successfully',
+                'data' => $newSettings
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to update security settings',
+                'error' => 'Unable to save security settings'
+            ], 500);
+        }
+    }
+
+    /**
+     * POST /api/profile/avatar - Upload profile avatar
+     */
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            $validator = Validator::make($request->all(), [
+                'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // 2MB max
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'The given data was invalid',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Delete old avatar if exists
+            if ($user->avatar_path && \Storage::disk('public')->exists($user->avatar_path)) {
+                \Storage::disk('public')->delete($user->avatar_path);
+            }
+
+            // Store new avatar
+            $path = $request->file('avatar')->store('avatars', 'public');
+
+            $user->update([
+                'avatar_path' => $path,
+                'avatar_url' => \Storage::disk('public')->url($path)
+            ]);
+
+            return response()->json([
+                'message' => 'Avatar uploaded successfully',
+                'avatar_url' => $user->avatar_url,
+                'updated_at' => $user->updated_at->toISOString(),
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to upload avatar',
+                'error' => 'Unable to save avatar image'
+            ], 500);
+        }
+    }
+
+    /**
+     * DELETE /api/profile/avatar - Remove profile avatar
+     */
+    public function deleteAvatar(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            // Delete avatar file if exists
+            if ($user->avatar_path && \Storage::disk('public')->exists($user->avatar_path)) {
+                \Storage::disk('public')->delete($user->avatar_path);
+            }
+
+            $user->update([
+                'avatar_path' => null,
+                'avatar_url' => null
+            ]);
+
+            return response()->json([
+                'message' => 'Avatar deleted successfully',
+                'updated_at' => $user->updated_at->toISOString(),
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to delete avatar',
+                'error' => 'Unable to remove avatar'
+            ], 500);
+        }
+    }
+
+    /**
+     * POST /api/profile/logout-all - Logout from all devices
+     */
+    public function logoutAllDevices(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            // Verify password for security
+            $validator = Validator::make($request->all(), [
+                'password' => 'required|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'The given data was invalid',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            if (!Hash::check($request->password, $user->password)) {
+                return response()->json([
+                    'message' => 'Incorrect password',
+                    'errors' => [
+                        'password' => ['The password is incorrect']
+                    ]
+                ], 422);
+            }
+
+            // Delete all tokens except current
+            $currentToken = $request->bearerToken();
+            $user->tokens()->where('token', '!=', hash('sha256', $currentToken))->delete();
+
+            return response()->json([
+                'message' => 'Successfully logged out from all other devices',
+                'devices_logged_out' => $user->tokens()->count()
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to logout from all devices',
+                'error' => 'Unable to revoke sessions'
+            ], 500);
+        }
+    }
 }

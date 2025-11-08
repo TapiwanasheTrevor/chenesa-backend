@@ -80,22 +80,40 @@ class TankResource extends Resource
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('location'),
+                Tables\Columns\TextColumn::make('current_level')
+                    ->label('Water Level')
+                    ->formatStateUsing(fn ($state) => number_format($state, 1) . '%')
+                    ->badge()
+                    ->color(fn ($state): string => match (true) {
+                        $state <= 10 => 'danger',
+                        $state <= 20 => 'warning',
+                        $state >= 90 => 'success',
+                        default => 'primary',
+                    })
+                    ->sortable(query: function ($query, string $direction) {
+                        return $query->leftJoin('sensor_readings as sr', function ($join) {
+                            $join->on('tanks.id', '=', 'sr.tank_id')
+                                ->whereRaw('sr.id = (SELECT id FROM sensor_readings WHERE tank_id = tanks.id ORDER BY created_at DESC LIMIT 1)');
+                        })
+                        ->orderBy('sr.water_level_percentage', $direction);
+                    }),
                 Tables\Columns\TextColumn::make('capacity_liters')
                     ->suffix(' L')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('sensor.device_id')
                     ->label('Sensor'),
-                Tables\Columns\BadgeColumn::make('shape')
+                Tables\Columns\BadgeColumn::make('status')
                     ->colors([
-                        'primary' => 'cylindrical',
-                        'success' => 'rectangular',
-                        'warning' => 'custom',
+                        'danger' => 'critical',
+                        'warning' => 'low',
+                        'success' => 'normal',
                     ]),
                 Tables\Columns\IconColumn::make('refill_enabled')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('organization')
@@ -126,6 +144,7 @@ class TankResource extends Resource
         return [
             'index' => Pages\ListTanks::route('/'),
             'create' => Pages\CreateTank::route('/create'),
+            'view' => Pages\ViewTank::route('/{record}'),
             'edit' => Pages\EditTank::route('/{record}/edit'),
         ];
     }

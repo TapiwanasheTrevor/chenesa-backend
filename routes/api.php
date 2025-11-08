@@ -110,6 +110,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/', [ProfileController::class, 'update']);
         Route::post('/change-password', [ProfileController::class, 'changePassword']);
         Route::post('/fcm-token', [ProfileController::class, 'updateFcmToken']);
+
+        // Security settings
+        Route::get('/security-settings', [ProfileController::class, 'getSecuritySettings']);
+        Route::patch('/security-settings', [ProfileController::class, 'updateSecuritySettings']);
+
+        // Avatar management
+        Route::post('/avatar', [ProfileController::class, 'uploadAvatar']);
+        Route::delete('/avatar', [ProfileController::class, 'deleteAvatar']);
+
+        // Session management
+        Route::post('/logout-all', [ProfileController::class, 'logoutAllDevices']);
     });
 
     // Dashboard & Analytics routes
