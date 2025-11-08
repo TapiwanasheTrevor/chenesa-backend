@@ -116,7 +116,7 @@ class TankResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\ReadingsRelationManager::class,
         ];
     }
 
