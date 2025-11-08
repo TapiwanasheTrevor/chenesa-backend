@@ -40,4 +40,10 @@ return [
         'project_id' => env('FIREBASE_PROJECT_ID'),
     ],
 
+    'dingtek' => [
+        'base_url' => env('DINGTEK_BASE_URL', 'https://cloud.dingtek.com'),
+        'username' => env('DINGTEK_USERNAME'),
+        'password' => env('DINGTEK_PASSWORD'),
+    ],
+
 ];

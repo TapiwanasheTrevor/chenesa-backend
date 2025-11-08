@@ -45,7 +45,7 @@ class Sensor extends Model
 
     public function latestReading(): HasOne
     {
-        return $this->hasOne(SensorReading::class)->latestOfMany();
+        return $this->hasOne(SensorReading::class)->latest('created_at');
     }
 
     public function simCard(): BelongsTo
