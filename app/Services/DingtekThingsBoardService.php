@@ -401,6 +401,10 @@ class DingtekThingsBoardService
         $devices = $devicesResponse['data'];
         Log::info('Starting sync of devices', ['device_count' => count($devices)]);
 
+        // Collect Dingtek device IDs
+        $dingtekDeviceIds = collect($devices)->pluck('id.id')->filter()->toArray();
+
+        // Sync each device from Dingtek
         foreach ($devices as $device) {
             try {
                 $this->syncDevice($device);
@@ -417,6 +421,13 @@ class DingtekThingsBoardService
                     'error' => $e->getMessage()
                 ]);
             }
+        }
+
+        // Remove sensors that no longer exist in Dingtek
+        $removedCount = \App\Models\Sensor::whereNotIn('device_id', $dingtekDeviceIds)->delete();
+        if ($removedCount > 0) {
+            Log::info('Removed sensors no longer in Dingtek', ['count' => $removedCount]);
+            $results['removed'] = $removedCount;
         }
 
         Log::info('Device sync completed', $results);

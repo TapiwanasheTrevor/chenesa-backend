@@ -250,9 +250,11 @@ class SensorResource extends Resource
                     ->label('')
                     ->view('filament.tables.columns.sensor-pulse')
                     ->alignCenter(),
-                Tables\Columns\TextColumn::make('device_id')
+                Tables\Columns\TextColumn::make('name')
+                    ->label('Sensor Name')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->description(fn ($record) => $record->imei ? "IMEI: {$record->imei}" : null),
                 Tables\Columns\TextColumn::make('tank.name')
                     ->label('Assigned Tank'),
                 Tables\Columns\BadgeColumn::make('status')
